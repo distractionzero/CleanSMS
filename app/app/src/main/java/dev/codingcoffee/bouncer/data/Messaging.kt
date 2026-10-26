@@ -139,4 +139,6 @@ class Messaging(
         }
         db.conversations().delete(threadIds)
     }
+
+    suspend fun deleteAll() = delete(db.conversations().all().map { it.threadId })
 }

@@ -19,11 +19,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
@@ -34,6 +36,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,6 +46,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -51,6 +55,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.codingcoffee.bouncer.BuildConfig
 import dev.codingcoffee.bouncer.container
 import dev.codingcoffee.bouncer.data.DebugSeeder
+import dev.codingcoffee.bouncer.data.db.MessageStats
 import dev.codingcoffee.bouncer.data.prefs.ThemeMode
 import kotlinx.coroutines.launch
 
@@ -62,6 +67,10 @@ fun SettingsScreen() {
     val themeMode by container.settings.themeMode.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var seeding by remember { mutableStateOf<String?>(null) }
+    val statsFlow = remember { container.db.messages().stats() }
+    val stats by statsFlow.collectAsStateWithLifecycle(MessageStats(0, 0, 0, 0))
+    var confirmDeleteAll by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(
@@ -120,6 +129,19 @@ fun SettingsScreen() {
                 }
             }
 
+            SectionHeader("Data")
+            SettingsCard {
+                SettingRow(
+                    Icons.Filled.DeleteForever,
+                    "Delete all messages",
+                    if (deleting) "Deleting…" else "${stats.total} messages in ${stats.conversations} conversations",
+                    chevron = false,
+                    destructive = true,
+                ) {
+                    if (!deleting && stats.conversations > 0) confirmDeleteAll = true
+                }
+            }
+
             if (BuildConfig.DEBUG) {
                 SectionHeader("Debug")
                 SettingsCard {
@@ -138,6 +160,25 @@ fun SettingsScreen() {
             }
             Spacer(Modifier.height(16.dp))
         }
+    }
+
+    if (confirmDeleteAll) {
+        AlertDialog(
+            onDismissRequest = { confirmDeleteAll = false },
+            title = { Text("Delete all messages?") },
+            text = { Text("All conversations, including archived ones, will be permanently deleted from this device.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDeleteAll = false
+                    deleting = true
+                    container.scope.launch {
+                        container.messaging.deleteAll()
+                        deleting = false
+                    }
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { confirmDeleteAll = false }) { Text("Cancel") } },
+        )
     }
 }
 
@@ -163,8 +204,8 @@ private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun RowIcon(icon: ImageVector) {
-    Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun RowIcon(icon: ImageVector, tint: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    Icon(icon, null, tint = tint)
     Spacer(Modifier.width(20.dp))
 }
 
@@ -174,15 +215,16 @@ private fun SettingRow(
     title: String,
     subtitle: String?,
     chevron: Boolean = true,
+    destructive: Boolean = false,
     onClick: () -> Unit,
 ) {
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RowIcon(icon)
+        if (destructive) RowIcon(icon, MaterialTheme.colorScheme.error) else RowIcon(icon)
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(title, style = MaterialTheme.typography.bodyLarge, color = if (destructive) MaterialTheme.colorScheme.error else Color.Unspecified)
             subtitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
         if (chevron) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
