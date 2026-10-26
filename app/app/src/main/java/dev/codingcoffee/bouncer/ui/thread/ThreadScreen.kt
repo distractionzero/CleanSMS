@@ -38,7 +38,10 @@ import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.automirrored.outlined.Forward
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.SelectAll
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -176,18 +179,18 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
                         Box {
                             IconButton(onClick = { selectionMenuOpen = true }) { Icon(Icons.Filled.MoreVert, "More") }
                             DropdownMenu(expanded = selectionMenuOpen, onDismissRequest = { selectionMenuOpen = false }) {
-                                DropdownMenuItem(text = { Text("Forward") }, onClick = {
+                                DropdownMenuItem(text = { Text("Forward") }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Forward, null) }, onClick = {
                                     selectionMenuOpen = false
                                     withSelectedText(onForward)
                                 })
-                                DropdownMenuItem(text = { Text("Share") }, onClick = {
+                                DropdownMenuItem(text = { Text("Share") }, leadingIcon = { Icon(Icons.Outlined.Share, null) }, onClick = {
                                     selectionMenuOpen = false
                                     withSelectedText {
                                         val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, it)
                                         context.startActivity(Intent.createChooser(send, null))
                                     }
                                 })
-                                DropdownMenuItem(text = { Text("Select all") }, onClick = {
+                                DropdownMenuItem(text = { Text("Select all") }, leadingIcon = { Icon(Icons.Outlined.SelectAll, null) }, onClick = {
                                     selectionMenuOpen = false
                                     scope.launch { selected = vm.allIds() }
                                 })
