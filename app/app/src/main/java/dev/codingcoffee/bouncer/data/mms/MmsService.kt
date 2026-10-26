@@ -110,7 +110,7 @@ class MmsService(
     private fun persistIncoming(pdu: Pdu): Pair<Long, Long> {
         val own = context.ownNumbers()
         val from = pdu.from.orEmpty()
-        val others = (pdu.to + pdu.cc).filter { address -> own.none { sameNumber(it, address) } }
+        val others = (pdu.to + pdu.cc).filter { address -> own.none { context.sameNumber(it, address) } }
             .let { if (own.isEmpty() && pdu.to.size == 1 && pdu.cc.isEmpty()) emptyList() else it }
         val participants = (listOf(from) + others).filter { it.isNotBlank() }
             .distinctBy { it.filter(Char::isDigit).takeLast(10).ifEmpty { it } }

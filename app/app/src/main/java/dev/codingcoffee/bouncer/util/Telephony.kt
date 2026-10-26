@@ -5,6 +5,8 @@ import android.os.Build
 import android.telephony.PhoneNumberUtils
 import android.telephony.SmsManager
 import android.telephony.SubscriptionManager
+import android.telephony.TelephonyManager
+import java.util.Locale
 
 fun Context.smsManager(): SmsManager =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) getSystemService(SmsManager::class.java)
@@ -26,7 +28,13 @@ fun Context.simLabel(subscriptionId: Int): String? = runCatching {
         ?.let { "SIM ${it.simSlotIndex + 1} - ${it.displayName}" }
 }.getOrNull()
 
-fun sameNumber(a: String, b: String): Boolean = PhoneNumberUtils.compare(a, b)
+fun Context.sameNumber(a: String, b: String): Boolean =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PhoneNumberUtils.areSamePhoneNumber(a, b, countryIso())
+    else @Suppress("DEPRECATION") PhoneNumberUtils.compare(a, b)
+
+private fun Context.countryIso(): String =
+    getSystemService(TelephonyManager::class.java)?.let { it.networkCountryIso.ifEmpty { it.simCountryIso } }
+        ?.ifEmpty { null }?.uppercase() ?: Locale.getDefault().country
 
 /** Parses `sms:`, `smsto:`, `mms:` and `mmsto:` URIs into recipient addresses. */
 fun recipientsFromUri(uri: android.net.Uri?): List<String> =
