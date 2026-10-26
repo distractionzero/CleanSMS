@@ -14,7 +14,6 @@ class ConversationsViewModel(private val container: AppContainer, archived: Bool
     ) { container.db.conversations().paging(archived) }.flow.cachedIn(viewModelScope)
 
     val syncState = container.sync.state
-    val archivedCount = container.db.conversations().archivedCount()
 
     fun setArchived(threadIds: Set<Long>, archived: Boolean) = container.scope.launch {
         container.messaging.setArchived(threadIds.toList(), archived)

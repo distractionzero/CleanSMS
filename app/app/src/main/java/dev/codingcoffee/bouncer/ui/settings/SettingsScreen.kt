@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Notifications
@@ -27,7 +26,6 @@ import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -58,7 +56,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
+fun SettingsScreen() {
     val context = LocalContext.current
     val container = context.container
     val themeMode by container.settings.themeMode.collectAsStateWithLifecycle()
@@ -71,7 +69,6 @@ fun SettingsScreen(onBack: () -> Unit) {
         topBar = {
             LargeTopAppBar(
                 title = { Text("Settings") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
                 scrollBehavior = scrollBehavior,
             )
         },

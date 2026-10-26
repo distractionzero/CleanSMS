@@ -77,3 +77,10 @@ data class ThreadStats(
     val hasAttachment: Boolean,
     val unread: Int,
 )
+
+data class MessageStats(
+    val total: Int,
+    val received: Int,
+    val sent: Int,
+    val conversations: Int,
+)

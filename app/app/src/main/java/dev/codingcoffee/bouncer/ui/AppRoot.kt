@@ -34,20 +34,19 @@ import dev.codingcoffee.bouncer.ThreadRequest
 import dev.codingcoffee.bouncer.container
 import dev.codingcoffee.bouncer.data.prefs.ThemeMode
 import dev.codingcoffee.bouncer.ui.conversations.ConversationsScreen
+import dev.codingcoffee.bouncer.ui.home.HomeScreen
 import dev.codingcoffee.bouncer.ui.newchat.NewChatScreen
 import dev.codingcoffee.bouncer.ui.onboarding.OnboardingScreen
 import dev.codingcoffee.bouncer.ui.search.SearchScreen
-import dev.codingcoffee.bouncer.ui.settings.SettingsScreen
 import dev.codingcoffee.bouncer.ui.theme.BouncerTheme
 import dev.codingcoffee.bouncer.ui.thread.ThreadScreen
 import kotlinx.coroutines.flow.Flow
 
 object Routes {
-    const val CONVERSATIONS = "conversations"
+    const val HOME = "home"
     const val ARCHIVED = "archived"
     const val NEW_CHAT = "new"
     const val SEARCH = "search"
-    const val SETTINGS = "settings"
     const val THREAD = "thread/{threadId}?focus={focus}&draft={draft}"
 
     fun thread(threadId: Long, focus: Long? = null, draft: String? = null): String =
@@ -105,22 +104,19 @@ private fun AppNavHost(threadRequests: Flow<ThreadRequest>) {
     LaunchedEffect(Unit) {
         threadRequests.collect { request ->
             navController.navigate(Routes.thread(request.threadId, draft = request.draft)) {
-                popUpTo(Routes.CONVERSATIONS)
+                popUpTo(Routes.HOME)
                 launchSingleTop = true
             }
         }
     }
 
-    NavHost(navController, startDestination = Routes.CONVERSATIONS) {
-        composable(Routes.CONVERSATIONS) {
-            ConversationsScreen(
-                archived = false,
+    NavHost(navController, startDestination = Routes.HOME) {
+        composable(Routes.HOME) {
+            HomeScreen(
                 onOpenThread = { navController.navigate(Routes.thread(it)) },
                 onNewChat = { navController.navigate(Routes.NEW_CHAT) },
                 onSearch = { navController.navigate(Routes.SEARCH) },
                 onArchived = { navController.navigate(Routes.ARCHIVED) },
-                onSettings = { navController.navigate(Routes.SETTINGS) },
-                onBack = {},
             )
         }
         composable(Routes.ARCHIVED) {
@@ -130,7 +126,6 @@ private fun AppNavHost(threadRequests: Flow<ThreadRequest>) {
                 onNewChat = {},
                 onSearch = {},
                 onArchived = {},
-                onSettings = {},
                 onBack = { navController.popBackStack() },
             )
         }
@@ -163,9 +158,6 @@ private fun AppNavHost(threadRequests: Flow<ThreadRequest>) {
                 onBack = { navController.popBackStack() },
                 onOpenMessage = { threadId, messageId -> navController.navigate(Routes.thread(threadId, messageId)) },
             )
-        }
-        composable(Routes.SETTINGS) {
-            SettingsScreen(onBack = { navController.popBackStack() })
         }
     }
 }

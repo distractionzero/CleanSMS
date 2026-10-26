@@ -73,6 +73,17 @@ interface MessageDao {
     )
     fun search(query: String): PagingSource<Int, MessageEntity>
 
+    @Query(
+        """
+        SELECT COUNT(*) AS total,
+               COALESCE(SUM(CASE WHEN box = 1 THEN 1 ELSE 0 END), 0) AS received,
+               COALESCE(SUM(CASE WHEN box = 2 THEN 1 ELSE 0 END), 0) AS sent,
+               (SELECT COUNT(*) FROM conversations) AS conversations
+        FROM messages
+        """
+    )
+    fun stats(): Flow<MessageStats>
+
     @Query("DELETE FROM messages WHERE threadId >= :minThreadId")
     suspend fun deleteThreadsFrom(minThreadId: Long)
 }
@@ -93,9 +104,6 @@ interface ConversationDao {
 
     @Query("SELECT * FROM conversations")
     suspend fun all(): List<ConversationEntity>
-
-    @Query("SELECT COUNT(*) FROM conversations WHERE archived = 1")
-    fun archivedCount(): Flow<Int>
 
     @Upsert
     suspend fun upsert(conversations: List<ConversationEntity>)

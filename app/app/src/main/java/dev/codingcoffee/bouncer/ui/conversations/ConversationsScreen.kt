@@ -23,15 +23,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.MarkChatRead
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -77,19 +74,16 @@ fun ConversationsScreen(
     onNewChat: () -> Unit,
     onSearch: () -> Unit,
     onArchived: () -> Unit,
-    onSettings: () -> Unit,
     onBack: () -> Unit,
 ) {
     val container = LocalContext.current.container
     val vm: ConversationsViewModel = viewModel(key = "conversations-$archived") { ConversationsViewModel(container, archived) }
     val conversations = vm.conversations.collectAsLazyPagingItems()
     val syncState by vm.syncState.collectAsStateWithLifecycle()
-    val archivedCount by vm.archivedCount.collectAsStateWithLifecycle(0)
     val listState = rememberLazyListState()
     val fabExpanded by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     var selected by remember { mutableStateOf(emptySet<Long>()) }
     var confirmDelete by remember { mutableStateOf(false) }
-    var menuOpen by remember { mutableStateOf(false) }
     val selecting = selected.isNotEmpty()
 
     BackHandler(enabled = selecting) { selected = emptySet() }
@@ -122,16 +116,7 @@ fun ConversationsScreen(
                     actions = {
                         if (!archived) {
                             IconButton(onClick = onSearch) { Icon(Icons.Filled.Search, "Search") }
-                            Box {
-                                IconButton(onClick = { menuOpen = true }) { Icon(Icons.Filled.MoreVert, "More") }
-                                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                                    DropdownMenuItem(
-                                        text = { Text(if (archivedCount > 0) "Archived ($archivedCount)" else "Archived") },
-                                        onClick = { menuOpen = false; onArchived() },
-                                    )
-                                    DropdownMenuItem(text = { Text("Settings") }, onClick = { menuOpen = false; onSettings() })
-                                }
-                            }
+                            IconButton(onClick = onArchived) { Icon(Icons.Outlined.Archive, "Archived") }
                         }
                     },
                 )
