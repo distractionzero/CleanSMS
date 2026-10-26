@@ -33,6 +33,8 @@ import androidx.navigation.navArgument
 import dev.codingcoffee.bouncer.ThreadRequest
 import dev.codingcoffee.bouncer.container
 import dev.codingcoffee.bouncer.data.prefs.ThemeMode
+import dev.codingcoffee.bouncer.ui.about.LicensesScreen
+import dev.codingcoffee.bouncer.ui.about.PrivacyPolicyScreen
 import dev.codingcoffee.bouncer.ui.conversations.ConversationsScreen
 import dev.codingcoffee.bouncer.ui.home.HomeScreen
 import dev.codingcoffee.bouncer.ui.newchat.NewChatScreen
@@ -47,6 +49,8 @@ object Routes {
     const val ARCHIVED = "archived"
     const val NEW_CHAT = "new?draft={draft}"
     const val SEARCH = "search"
+    const val PRIVACY_POLICY = "privacy"
+    const val LICENSES = "licenses"
     const val THREAD = "thread/{threadId}?focus={focus}&draft={draft}"
 
     fun thread(threadId: Long, focus: Long? = null, draft: String? = null): String =
@@ -119,6 +123,8 @@ private fun AppNavHost(threadRequests: Flow<ThreadRequest>) {
                 onNewChat = { navController.navigate(Routes.newChat()) },
                 onSearch = { navController.navigate(Routes.SEARCH) },
                 onArchived = { navController.navigate(Routes.ARCHIVED) },
+                onPrivacyPolicy = { navController.navigate(Routes.PRIVACY_POLICY) },
+                onLicenses = { navController.navigate(Routes.LICENSES) },
             )
         }
         composable(Routes.ARCHIVED) {
@@ -159,6 +165,12 @@ private fun AppNavHost(threadRequests: Flow<ThreadRequest>) {
                     navController.navigate(Routes.thread(threadId, draft = draft)) { popUpTo(Routes.NEW_CHAT) { inclusive = true } }
                 },
             )
+        }
+        composable(Routes.PRIVACY_POLICY) {
+            PrivacyPolicyScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.LICENSES) {
+            LicensesScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.SEARCH) {
             SearchScreen(

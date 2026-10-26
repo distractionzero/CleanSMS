@@ -21,8 +21,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AlertDialog
@@ -61,7 +63,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
     val context = LocalContext.current
     val container = context.container
     val themeMode by container.settings.themeMode.collectAsStateWithLifecycle()
@@ -127,6 +129,12 @@ fun SettingsScreen() {
                 SettingRow(Icons.Filled.Sms, "Default SMS app", "Active. Bouncer is your default SMS app.") {
                     context.startActivity(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
                 }
+            }
+
+            SectionHeader("About")
+            SettingsCard {
+                SettingRow(Icons.Filled.Policy, "Privacy policy", null, onClick = onPrivacyPolicy)
+                SettingRow(Icons.Filled.Description, "Open source licenses", null, onClick = onLicenses)
             }
 
             SectionHeader("Data")

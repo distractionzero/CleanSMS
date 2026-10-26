@@ -37,6 +37,8 @@ fun HomeScreen(
     onNewChat: () -> Unit,
     onSearch: () -> Unit,
     onArchived: () -> Unit,
+    onPrivacyPolicy: () -> Unit,
+    onLicenses: () -> Unit,
 ) {
     var tab by rememberSaveable { mutableStateOf(Tab.Inbox) }
 
@@ -68,7 +70,7 @@ fun HomeScreen(
                     onBack = {},
                 )
                 Tab.Stats -> StatsScreen()
-                Tab.Settings -> SettingsScreen()
+                Tab.Settings -> SettingsScreen(onPrivacyPolicy, onLicenses)
             }
         }
     }
