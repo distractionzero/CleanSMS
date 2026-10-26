@@ -1,12 +1,16 @@
 package dev.codingcoffee.bouncer.ui.thread
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -32,6 +36,9 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -45,11 +52,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -69,8 +78,10 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import dev.codingcoffee.bouncer.container
+import dev.codingcoffee.bouncer.data.MessageDetails
 import dev.codingcoffee.bouncer.data.contacts.Contact
 import dev.codingcoffee.bouncer.data.contacts.ContactRepository
+import dev.codingcoffee.bouncer.data.db.Box as MessageBox
 import dev.codingcoffee.bouncer.data.db.MessageEntity
 import dev.codingcoffee.bouncer.notify.ActiveThread
 import dev.codingcoffee.bouncer.ui.components.Avatar
@@ -79,12 +90,13 @@ import dev.codingcoffee.bouncer.ui.components.title
 import dev.codingcoffee.bouncer.util.TimeFormat
 import dev.codingcoffee.bouncer.util.rememberImage
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 private const val GROUP_WINDOW_MS = 2 * 60 * 1000L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, onBack: () -> Unit) {
+fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, onBack: () -> Unit, onForward: (String) -> Unit) {
     val context = LocalContext.current
     val container = context.container
     val vm: ThreadViewModel = viewModel(key = "thread-$threadId") { ThreadViewModel(container, threadId) }
@@ -99,6 +111,20 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
     var attachment by rememberSaveable { mutableStateOf<Uri?>(null) }
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var selected by remember { mutableStateOf(emptySet<Long>()) }
+    var selectionMenuOpen by remember { mutableStateOf(false) }
+    var confirmDeleteMessages by remember { mutableStateOf(false) }
+    var details by remember { mutableStateOf<MessageDetails?>(null) }
+    val selecting = selected.isNotEmpty()
+    val scope = rememberCoroutineScope()
+
+    fun withSelectedText(action: (String) -> Unit) {
+        val ids = selected
+        selected = emptySet()
+        scope.launch { action(vm.messagesFor(ids).map { it.body }.filter { it.isNotBlank() }.joinToString("\n")) }
+    }
+
+    BackHandler(enabled = selecting) { selected = emptySet() }
 
     LifecycleResumeEffect(threadId) {
         ActiveThread.id = threadId
@@ -129,47 +155,90 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-                },
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Avatar(contacts, size = 36.dp)
-                        Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text(contacts.title(), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
-                            val subtitle = contacts.singleOrNull()?.takeIf { it.name != null }?.address
-                                ?: if (isGroup) "${addresses.size} people" else null
-                            subtitle?.let {
-                                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (selecting) {
+                TopAppBar(
+                    title = { Text("${selected.size}") },
+                    navigationIcon = {
+                        IconButton(onClick = { selected = emptySet() }) { Icon(Icons.Filled.Close, "Clear selection") }
+                    },
+                    actions = {
+                        IconButton(onClick = {
+                            withSelectedText { context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("message", it)) }
+                        }) { Icon(Icons.Outlined.ContentCopy, "Copy") }
+                        IconButton(onClick = { confirmDeleteMessages = true }) { Icon(Icons.Outlined.Delete, "Delete") }
+                        if (selected.size == 1) {
+                            IconButton(onClick = {
+                                val id = selected.first()
+                                selected = emptySet()
+                                scope.launch { details = vm.details(id) }
+                            }) { Icon(Icons.Outlined.Info, "Details") }
+                        }
+                        Box {
+                            IconButton(onClick = { selectionMenuOpen = true }) { Icon(Icons.Filled.MoreVert, "More") }
+                            DropdownMenu(expanded = selectionMenuOpen, onDismissRequest = { selectionMenuOpen = false }) {
+                                DropdownMenuItem(text = { Text("Forward") }, onClick = {
+                                    selectionMenuOpen = false
+                                    withSelectedText(onForward)
+                                })
+                                DropdownMenuItem(text = { Text("Share") }, onClick = {
+                                    selectionMenuOpen = false
+                                    withSelectedText {
+                                        val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, it)
+                                        context.startActivity(Intent.createChooser(send, null))
+                                    }
+                                })
+                                DropdownMenuItem(text = { Text("Select all") }, onClick = {
+                                    selectionMenuOpen = false
+                                    scope.launch { selected = vm.allIds() }
+                                })
                             }
                         }
-                    }
-                },
-                actions = {
-                    if (!isGroup && addresses.isNotEmpty()) {
-                        IconButton(onClick = {
-                            context.startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", addresses.first(), null)))
-                        }) { Icon(Icons.Outlined.Call, "Call") }
-                    }
-                    Box {
-                        IconButton(onClick = { menuOpen = true }) { Icon(Icons.Filled.MoreVert, "More") }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            val archived = conversation?.archived == true
-                            DropdownMenuItem(
-                                text = { Text(if (archived) "Unarchive" else "Archive") },
-                                onClick = {
-                                    menuOpen = false
-                                    vm.setArchived(!archived)
-                                    if (!archived) onBack()
-                                },
-                            )
-                            DropdownMenuItem(text = { Text("Delete") }, onClick = { menuOpen = false; confirmDelete = true })
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                )
+            } else {
+                TopAppBar(
+                    navigationIcon = {
+                        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                    },
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Avatar(contacts, size = 36.dp)
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(contacts.title(), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
+                                val subtitle = contacts.singleOrNull()?.takeIf { it.name != null }?.address
+                                    ?: if (isGroup) "${addresses.size} people" else null
+                                subtitle?.let {
+                                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
                         }
-                    }
-                },
-            )
+                    },
+                    actions = {
+                        if (!isGroup && addresses.isNotEmpty()) {
+                            IconButton(onClick = {
+                                context.startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", addresses.first(), null)))
+                            }) { Icon(Icons.Outlined.Call, "Call") }
+                        }
+                        Box {
+                            IconButton(onClick = { menuOpen = true }) { Icon(Icons.Filled.MoreVert, "More") }
+                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                val archived = conversation?.archived == true
+                                DropdownMenuItem(
+                                    text = { Text(if (archived) "Unarchive" else "Archive") },
+                                    onClick = {
+                                        menuOpen = false
+                                        vm.setArchived(!archived)
+                                        if (!archived) onBack()
+                                    },
+                                )
+                                DropdownMenuItem(text = { Text("Delete") }, onClick = { menuOpen = false; confirmDelete = true })
+                            }
+                        }
+                    },
+                )
+            }
         },
         bottomBar = {
             Composer(
@@ -210,8 +279,14 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
                         layout = layout,
                         sender = if (message.isIncoming) senderFor(message, contactsByKey, contacts) else null,
                         isGroup = isGroup,
+                        selected = message.id in selected,
                         loadParts = loadParts,
                         onRetry = retry,
+                        onClick = {
+                            if (selecting) selected = selected.toggle(message.id)
+                            else if (message.box == MessageBox.FAILED) retry(message)
+                        },
+                        onLongClick = { selected = selected.toggle(message.id) },
                     )
                 }
             }
@@ -233,7 +308,52 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
         )
     }
+
+    if (confirmDeleteMessages) {
+        AlertDialog(
+            onDismissRequest = { confirmDeleteMessages = false },
+            title = { Text(if (selected.size == 1) "Delete message?" else "Delete ${selected.size} messages?") },
+            text = { Text("Messages will be permanently deleted from this device.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.deleteMessages(selected)
+                    selected = emptySet()
+                    confirmDeleteMessages = false
+                }) { Text("Delete") }
+            },
+            dismissButton = { TextButton(onClick = { confirmDeleteMessages = false }) { Text("Cancel") } },
+        )
+    }
+
+    details?.let { info ->
+        AlertDialog(
+            onDismissRequest = { details = null },
+            title = { Text("Message details") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    DetailRow("Type", if (info.isMms) "MMS" else "SMS")
+                    DetailRow(if (info.incoming) "From" else "To", info.address.ifBlank { addresses.joinToString() })
+                    info.sentAt?.let {
+                        DetailRow(if (info.incoming) "Sent (sender's network time)" else "Sent", TimeFormat.full(context, it))
+                    }
+                    info.receivedAt?.let { DetailRow("Received", TimeFormat.full(context, it)) }
+                    info.sim?.let { DetailRow("SIM", it) }
+                }
+            },
+            confirmButton = { TextButton(onClick = { details = null }) { Text("Close") } },
+        )
+    }
 }
+
+@Composable
+private fun DetailRow(label: String, value: String) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+private fun Set<Long>.toggle(id: Long): Set<Long> = if (id in this) this - id else this + id
 
 private fun senderFor(message: MessageEntity, byKey: Map<String, Contact>, all: List<Contact>): Contact? =
     if (message.address.isBlank()) all.firstOrNull()

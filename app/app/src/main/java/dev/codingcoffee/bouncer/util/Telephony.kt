@@ -20,6 +20,12 @@ fun Context.ownNumbers(): List<String> = runCatching {
     }
 }.getOrDefault(emptyList())
 
+@Suppress("MissingPermission")
+fun Context.simLabel(subscriptionId: Int): String? = runCatching {
+    getSystemService(SubscriptionManager::class.java).getActiveSubscriptionInfo(subscriptionId)
+        ?.let { "SIM ${it.simSlotIndex + 1} - ${it.displayName}" }
+}.getOrNull()
+
 fun sameNumber(a: String, b: String): Boolean = PhoneNumberUtils.compare(a, b)
 
 /** Parses `sms:`, `smsto:`, `mms:` and `mmsto:` URIs into recipient addresses. */

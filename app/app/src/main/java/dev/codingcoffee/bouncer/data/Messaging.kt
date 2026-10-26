@@ -15,9 +15,19 @@ import dev.codingcoffee.bouncer.data.mms.MmsService
 import dev.codingcoffee.bouncer.data.sync.TelephonySync
 import dev.codingcoffee.bouncer.notify.Notifier
 import dev.codingcoffee.bouncer.receivers.SmsStatusReceiver
+import dev.codingcoffee.bouncer.util.simLabel
 import dev.codingcoffee.bouncer.util.smsManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
+data class MessageDetails(
+    val isMms: Boolean,
+    val incoming: Boolean,
+    val address: String,
+    val sentAt: Long?,
+    val receivedAt: Long?,
+    val sim: String?,
+)
 
 class Messaging(
     private val context: Context,
@@ -139,6 +149,39 @@ class Messaging(
         }
         db.conversations().delete(threadIds)
     }
+
+    suspend fun deleteMessages(threadId: Long, messages: List<MessageEntity>) = withContext(Dispatchers.IO) {
+        messages.forEach { resolver.delete(providerUri(it), null, null) }
+        db.withTransaction {
+            messages.map { it.id }.chunked(500).forEach { ids ->
+                db.messages().deletePartsFor(ids)
+                db.messages().deleteByIds(ids)
+            }
+        }
+        sync.refreshThreads(listOf(threadId))
+    }
+
+    suspend fun details(message: MessageEntity): MessageDetails = withContext(Dispatchers.IO) {
+        var networkSent: Long? = null
+        var sim: String? = null
+        resolver.query(providerUri(message), arrayOf(Telephony.Sms.DATE_SENT, Telephony.Sms.SUBSCRIPTION_ID), null, null, null)?.use { c ->
+            if (c.moveToFirst()) {
+                networkSent = c.getLong(0).takeIf { it > 0 }?.let { if (message.isMms) it * 1000 else it }
+                sim = context.simLabel(c.getInt(1))
+            }
+        }
+        MessageDetails(
+            isMms = message.isMms,
+            incoming = message.isIncoming,
+            address = message.address,
+            sentAt = if (message.isIncoming) networkSent else message.date,
+            receivedAt = if (message.isIncoming) message.date else null,
+            sim = sim,
+        )
+    }
+
+    private fun providerUri(message: MessageEntity): Uri =
+        ContentUris.withAppendedId(if (message.isMms) Telephony.Mms.CONTENT_URI else Telephony.Sms.CONTENT_URI, message.providerId)
 
     suspend fun deleteAll() = delete(db.conversations().all().map { it.threadId })
 }

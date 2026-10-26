@@ -1,7 +1,5 @@
 package dev.codingcoffee.bouncer.ui.thread
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -31,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -62,14 +61,16 @@ fun MessageItem(
     layout: MessageLayout,
     sender: Contact?,
     isGroup: Boolean,
+    selected: Boolean,
     loadParts: suspend (Long) -> List<MmsPartEntity>,
     onRetry: (MessageEntity) -> Unit,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
 ) {
-    val context = LocalContext.current
     val incoming = message.isIncoming
     val colors = MaterialTheme.colorScheme
 
-    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+    Column(Modifier.fillMaxWidth()) {
         if (layout.showDayHeader) {
             Text(
                 remember(message.date) { TimeFormat.dayHeader(message.date) },
@@ -82,58 +83,59 @@ fun MessageItem(
         if (incoming && isGroup && !layout.joinsOlder && sender != null) {
             Text(
                 sender.displayName,
-                modifier = Modifier.padding(start = 56.dp, top = 6.dp, bottom = 2.dp),
+                modifier = Modifier.padding(start = 68.dp, top = 6.dp, bottom = 2.dp),
                 style = MaterialTheme.typography.labelMedium,
                 color = colors.onSurfaceVariant,
             )
         }
-        Row(
-            Modifier.fillMaxWidth().padding(top = if (layout.joinsOlder) 2.dp else 6.dp),
-            horizontalArrangement = if (incoming) Arrangement.Start else Arrangement.End,
-            verticalAlignment = Alignment.Bottom,
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .background(if (selected) colors.secondaryContainer else Color.Transparent)
+                .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                .padding(horizontal = 12.dp),
         ) {
-            if (incoming) {
-                if (!layout.joinsNewer && sender != null) Avatar(listOf(sender), size = 36.dp) else Spacer(Modifier.width(36.dp))
-                Spacer(Modifier.width(8.dp))
-            }
-            val shape = if (incoming) {
-                RoundedCornerShape(
-                    topStart = if (layout.joinsOlder) SMALL else BIG, topEnd = BIG,
-                    bottomEnd = BIG, bottomStart = if (layout.joinsNewer) SMALL else BIG,
-                )
-            } else {
-                RoundedCornerShape(
-                    topStart = BIG, topEnd = if (layout.joinsOlder) SMALL else BIG,
-                    bottomEnd = if (layout.joinsNewer) SMALL else BIG, bottomStart = BIG,
-                )
-            }
-            Column(
-                Modifier.widthIn(max = 300.dp),
-                horizontalAlignment = if (incoming) Alignment.Start else Alignment.End,
+            Row(
+                Modifier.fillMaxWidth().padding(top = if (layout.joinsOlder) 2.dp else 6.dp),
+                horizontalArrangement = if (incoming) Arrangement.Start else Arrangement.End,
+                verticalAlignment = Alignment.Bottom,
             ) {
-                if (message.hasAttachment) MmsImages(message.id, loadParts)
-                if (message.body.isNotEmpty()) {
-                    Text(
-                        remember(message.body) { linkify(message.body) },
-                        modifier = Modifier
-                            .clip(shape)
-                            .background(if (incoming) colors.surfaceContainerHigh else colors.primaryContainer)
-                            .combinedClickable(
-                                onClick = { if (message.box == MessageBox.FAILED) onRetry(message) },
-                                onLongClick = {
-                                    context.getSystemService(ClipboardManager::class.java)
-                                        .setPrimaryClip(ClipData.newPlainText("message", message.body))
-                                },
-                            )
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (incoming) colors.onSurface else colors.onPrimaryContainer,
+                if (incoming) {
+                    if (!layout.joinsNewer && sender != null) Avatar(listOf(sender), size = 36.dp) else Spacer(Modifier.width(36.dp))
+                    Spacer(Modifier.width(8.dp))
+                }
+                val shape = if (incoming) {
+                    RoundedCornerShape(
+                        topStart = if (layout.joinsOlder) SMALL else BIG, topEnd = BIG,
+                        bottomEnd = BIG, bottomStart = if (layout.joinsNewer) SMALL else BIG,
+                    )
+                } else {
+                    RoundedCornerShape(
+                        topStart = BIG, topEnd = if (layout.joinsOlder) SMALL else BIG,
+                        bottomEnd = if (layout.joinsNewer) SMALL else BIG, bottomStart = BIG,
                     )
                 }
+                Column(
+                    Modifier.widthIn(max = 300.dp),
+                    horizontalAlignment = if (incoming) Alignment.Start else Alignment.End,
+                ) {
+                    if (message.hasAttachment) MmsImages(message.id, loadParts)
+                    if (message.body.isNotEmpty()) {
+                        Text(
+                            remember(message.body) { linkify(message.body) },
+                            modifier = Modifier
+                                .clip(shape)
+                                .background(if (incoming) colors.surfaceContainerHigh else colors.primaryContainer)
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (incoming) colors.onSurface else colors.onPrimaryContainer,
+                        )
+                    }
+                }
             }
-        }
-        if (!layout.joinsNewer || message.box != MessageBox.INBOX && message.box != MessageBox.SENT) {
-            Status(message, Modifier.align(if (incoming) Alignment.Start else Alignment.End), onRetry)
+            if (!layout.joinsNewer || message.box != MessageBox.INBOX && message.box != MessageBox.SENT) {
+                Status(message, Modifier.align(if (incoming) Alignment.Start else Alignment.End), onRetry)
+            }
         }
     }
 }

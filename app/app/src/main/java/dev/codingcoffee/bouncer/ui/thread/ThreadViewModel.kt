@@ -7,6 +7,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.cachedIn
 import dev.codingcoffee.bouncer.AppContainer
+import dev.codingcoffee.bouncer.data.MessageDetails
 import dev.codingcoffee.bouncer.data.db.MessageEntity
 import dev.codingcoffee.bouncer.data.db.MmsPartEntity
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +56,18 @@ class ThreadViewModel(private val container: AppContainer, private val threadId:
 
     fun delete() {
         container.scope.launch { container.messaging.delete(listOf(threadId)) }
+    }
+
+    suspend fun messagesFor(ids: Set<Long>): List<MessageEntity> =
+        ids.chunked(500).flatMap { container.db.messages().byIds(it) }.sortedWith(compareBy({ it.date }, { it.id }))
+
+    suspend fun allIds(): Set<Long> = container.db.messages().idsInThread(threadId).toSet()
+
+    suspend fun details(id: Long): MessageDetails? =
+        container.db.messages().byId(id)?.let { container.messaging.details(it) }
+
+    fun deleteMessages(ids: Set<Long>) {
+        container.scope.launch { container.messaging.deleteMessages(threadId, messagesFor(ids)) }
     }
 
     suspend fun positionOf(messageId: Long): Int? {

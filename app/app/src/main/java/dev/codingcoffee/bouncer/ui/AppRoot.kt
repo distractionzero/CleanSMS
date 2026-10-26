@@ -45,12 +45,14 @@ import kotlinx.coroutines.flow.Flow
 object Routes {
     const val HOME = "home"
     const val ARCHIVED = "archived"
-    const val NEW_CHAT = "new"
+    const val NEW_CHAT = "new?draft={draft}"
     const val SEARCH = "search"
     const val THREAD = "thread/{threadId}?focus={focus}&draft={draft}"
 
     fun thread(threadId: Long, focus: Long? = null, draft: String? = null): String =
         "thread/$threadId?focus=${focus ?: Long.MIN_VALUE}&draft=${Uri.encode(draft.orEmpty())}"
+
+    fun newChat(draft: String? = null): String = "new?draft=${Uri.encode(draft.orEmpty())}"
 }
 
 @Composable
@@ -114,7 +116,7 @@ private fun AppNavHost(threadRequests: Flow<ThreadRequest>) {
         composable(Routes.HOME) {
             HomeScreen(
                 onOpenThread = { navController.navigate(Routes.thread(it)) },
-                onNewChat = { navController.navigate(Routes.NEW_CHAT) },
+                onNewChat = { navController.navigate(Routes.newChat()) },
                 onSearch = { navController.navigate(Routes.SEARCH) },
                 onArchived = { navController.navigate(Routes.ARCHIVED) },
             )
@@ -143,13 +145,18 @@ private fun AppNavHost(threadRequests: Flow<ThreadRequest>) {
                 focusMessageId = args.getLong("focus").takeIf { it != Long.MIN_VALUE },
                 initialDraft = args.getString("draft").orEmpty(),
                 onBack = { navController.popBackStack() },
+                onForward = { navController.navigate(Routes.newChat(it)) },
             )
         }
-        composable(Routes.NEW_CHAT) {
+        composable(
+            Routes.NEW_CHAT,
+            arguments = listOf(navArgument("draft") { type = NavType.StringType; defaultValue = "" }),
+        ) { entry ->
+            val draft = entry.arguments!!.getString("draft").orEmpty()
             NewChatScreen(
                 onBack = { navController.popBackStack() },
                 onOpenThread = { threadId ->
-                    navController.navigate(Routes.thread(threadId)) { popUpTo(Routes.NEW_CHAT) { inclusive = true } }
+                    navController.navigate(Routes.thread(threadId, draft = draft)) { popUpTo(Routes.NEW_CHAT) { inclusive = true } }
                 },
             )
         }

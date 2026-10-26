@@ -34,6 +34,18 @@ interface MessageDao {
     @Query("SELECT * FROM mms_parts WHERE messageId = :messageId ORDER BY id")
     suspend fun parts(messageId: Long): List<MmsPartEntity>
 
+    @Query("SELECT * FROM messages WHERE id IN (:ids) ORDER BY date ASC, id ASC")
+    suspend fun byIds(ids: List<Long>): List<MessageEntity>
+
+    @Query("SELECT id FROM messages WHERE threadId = :threadId")
+    suspend fun idsInThread(threadId: Long): List<Long>
+
+    @Query("DELETE FROM mms_parts WHERE messageId IN (:ids)")
+    suspend fun deletePartsFor(ids: List<Long>)
+
+    @Query("DELETE FROM messages WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Long>)
+
     @Query("UPDATE messages SET box = :box WHERE id = :id")
     suspend fun updateBox(id: Long, box: Int)
 
