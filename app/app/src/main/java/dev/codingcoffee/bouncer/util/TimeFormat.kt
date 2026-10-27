@@ -30,6 +30,7 @@ object TimeFormat {
         val days = ChronoUnit.DAYS.between(dt.toLocalDate(), today)
         return when {
             days == 0L -> dt.format(time(context))
+            days == 1L -> "Yesterday"
             days < 7 -> dt.format(weekday)
             dt.year == today.year -> dt.format(monthDay)
             else -> dt.format(fullDate)
