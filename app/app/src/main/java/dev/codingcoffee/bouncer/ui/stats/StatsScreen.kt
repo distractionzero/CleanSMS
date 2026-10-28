@@ -4,7 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -111,14 +110,7 @@ private fun ReceivedPerDay() {
     }
     val daily by dailyFlow.collectAsStateWithLifecycle(emptyList())
     val points = remember(daily, range) { fillDays(daily, range, today) }
-    val total = points.sumOf { it.second }
 
-    Text(
-        "Received per day",
-        modifier = Modifier.padding(start = 8.dp, top = 8.dp),
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-    )
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
         Range.entries.forEachIndexed { index, option ->
             SegmentedButton(
@@ -128,16 +120,14 @@ private fun ReceivedPerDay() {
             ) { Text(option.label) }
         }
     }
+    Text(
+        "Received per day",
+        modifier = Modifier.padding(start = 8.dp, top = 8.dp),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+    )
     Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(Modifier.fillMaxWidth().padding(20.dp)) {
-            Text(NumberFormat.getIntegerInstance().format(total), style = MaterialTheme.typography.headlineMedium)
-            Text(
-                if (range.days != null) "received in the last ${range.label}"
-                else "received since ${points.first().first.format(DateTimeFormatter.ofPattern("d MMM yyyy"))}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(20.dp))
             DailyChart(points, Modifier.fillMaxWidth().height(180.dp))
         }
     }
