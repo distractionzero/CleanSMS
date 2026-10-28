@@ -1,6 +1,8 @@
 package dev.codingcoffee.bouncer.ui.stats
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,12 +30,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -47,6 +52,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import kotlin.math.roundToInt
 
 private enum class Range(val label: String, val days: Long?) {
     WEEK("7 days", 7),
@@ -154,8 +160,24 @@ private fun DailyChart(points: List<Pair<LocalDate, Int>>, modifier: Modifier) {
     val dateFormat = DateTimeFormatter.ofPattern(if (span > 365) "MMM yy" else "d MMM")
     val numberFormat = NumberFormat.getIntegerInstance()
     val xLabelIndices = listOf(0, points.lastIndex / 2, points.lastIndex).distinct()
+    val tooltipDateStyle = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val tooltipValueStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface)
+    val tooltipColor = MaterialTheme.colorScheme.surface
+    val tooltipBorder = MaterialTheme.colorScheme.outline
+    var touchX by remember { mutableStateOf<Float?>(null) }
 
-    Canvas(modifier) {
+    Canvas(
+        modifier.pointerInput(Unit) {
+            awaitEachGesture {
+                touchX = awaitFirstDown().position.x
+                do {
+                    val change = awaitPointerEvent().changes.first()
+                    if (change.pressed) touchX = change.position.x
+                } while (change.pressed)
+                touchX = null
+            }
+        },
+    ) {
         val yLabels = listOf(top, top / 2, 0).map { measurer.measure(numberFormat.format(it), labelStyle) }
         val xLabels = xLabelIndices.map { measurer.measure(points[it].first.format(dateFormat), labelStyle) }
         val gutter = yLabels.maxOf { it.size.width } + 12.dp.toPx()
@@ -186,5 +208,31 @@ private fun DailyChart(points: List<Pair<LocalDate, Int>>, modifier: Modifier) {
         if (points.size <= 31) points.forEachIndexed { index, (_, count) ->
             drawCircle(lineColor, radius = 3.dp.toPx(), center = Offset(x(index), y(count)))
         }
+
+        val selected = touchX?.let { if (step > 0f) ((it - plotLeft) / step).roundToInt().coerceIn(0, points.lastIndex) else 0 }
+            ?: return@Canvas
+        val (date, count) = points[selected]
+        val point = Offset(x(selected), y(count))
+        drawCircle(lineColor, radius = 5.dp.toPx(), center = point)
+
+        val dateText = measurer.measure(date.format(DateTimeFormatter.ofPattern("d MMM yyyy")), tooltipDateStyle)
+        val valueText = measurer.measure("${numberFormat.format(count)} received", tooltipValueStyle)
+        val padding = 10.dp.toPx()
+        val dotRadius = 4.dp.toPx()
+        val dotSpace = dotRadius * 2 + 6.dp.toPx()
+        val box = Size(
+            maxOf(dateText.size.width.toFloat(), dotSpace + valueText.size.width) + padding * 2,
+            dateText.size.height + valueText.size.height + padding * 2,
+        )
+        val gap = 10.dp.toPx()
+        val left = (point.x - box.width / 2).coerceIn(0f, size.width - box.width)
+        val boxTop = (point.y - gap - box.height).takeIf { it >= 0f } ?: (point.y + gap)
+        val corner = CornerRadius(8.dp.toPx())
+        drawRoundRect(tooltipColor, Offset(left, boxTop), box, corner)
+        drawRoundRect(tooltipBorder, Offset(left, boxTop), box, corner, style = Stroke(1.dp.toPx()))
+        drawText(dateText, topLeft = Offset(left + padding, boxTop + padding))
+        val valueTop = boxTop + padding + dateText.size.height
+        drawCircle(lineColor, radius = dotRadius, center = Offset(left + padding + dotRadius, valueTop + valueText.size.height / 2f))
+        drawText(valueText, topLeft = Offset(left + padding + dotSpace, valueTop))
     }
 }
