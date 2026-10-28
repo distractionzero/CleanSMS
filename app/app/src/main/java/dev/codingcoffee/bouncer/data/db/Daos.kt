@@ -96,6 +96,14 @@ interface MessageDao {
     )
     fun stats(): Flow<MessageStats>
 
+    @Query(
+        """
+        SELECT date(date / 1000, 'unixepoch', 'localtime') AS day, COUNT(*) AS count
+        FROM messages WHERE box = 1 AND date >= :since GROUP BY day ORDER BY day
+        """
+    )
+    fun receivedPerDay(since: Long): Flow<List<DailyCount>>
+
     @Query("DELETE FROM messages WHERE threadId >= :minThreadId")
     suspend fun deleteThreadsFrom(minThreadId: Long)
 }

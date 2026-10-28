@@ -84,3 +84,8 @@ data class MessageStats(
     val sent: Int,
     val conversations: Int,
 )
+
+data class DailyCount(
+    val day: String,
+    val count: Int,
+)
