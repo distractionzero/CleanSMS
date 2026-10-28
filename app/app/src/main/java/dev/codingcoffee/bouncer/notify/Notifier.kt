@@ -38,7 +38,7 @@ class Notifier(
     suspend fun notifyThread(threadId: Long) {
         if (ActiveThread.id == threadId) return
         if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
-        val unread = db.messages().unreadInThread(threadId).takeLast(8)
+        val unread = db.messages().unreadInThread(threadId).takeLast(1)
         if (unread.isEmpty()) return cancel(threadId)
         val conversation = db.conversations().byId(threadId)
         val addresses = conversation?.addressList.orEmpty()
