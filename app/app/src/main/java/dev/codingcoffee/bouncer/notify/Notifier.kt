@@ -43,7 +43,10 @@ class Notifier(
         val conversation = db.conversations().byId(threadId)
         val addresses = conversation?.addressList.orEmpty()
 
-        val style = NotificationCompat.MessagingStyle(Person.Builder().setName("You").build())
+        val shown = context.getSystemService(NotificationManager::class.java).activeNotifications
+            .firstOrNull { it.id == threadId.toInt() }?.notification
+        val style = shown?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }
+            ?: NotificationCompat.MessagingStyle(Person.Builder().setName("You").build())
         if (addresses.size > 1) {
             style.isGroupConversation = true
             style.conversationTitle = addresses.map { contacts.get(it).displayName }.joinToString(", ")
