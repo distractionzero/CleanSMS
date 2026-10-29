@@ -10,6 +10,7 @@ import dev.codingcoffee.bouncer.data.db.Label
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -17,15 +18,19 @@ import kotlinx.coroutines.launch
 class ConversationsViewModel(private val container: AppContainer, archived: Boolean) : ViewModel() {
     private val _label = MutableStateFlow<Label?>(null)
     val label = _label.asStateFlow()
+    private val _unreadOnly = MutableStateFlow(false)
+    val unreadOnly = _unreadOnly.asStateFlow()
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val conversations = _label.flatMapLatest { label ->
+    val conversations = combine(_label, _unreadOnly, ::Pair).flatMapLatest { (label, unreadOnly) ->
         Pager(
             PagingConfig(pageSize = 50, prefetchDistance = 100, initialLoadSize = 100, enablePlaceholders = true),
-        ) { container.db.conversations().paging(archived, label) }.flow
+        ) { container.db.conversations().paging(archived, label, unreadOnly) }.flow
     }.cachedIn(viewModelScope)
 
     val syncState = container.sync.state
+
+    fun toggleUnreadOnly() = _unreadOnly.update { !it }
 
     fun toggleLabel(label: Label) = _label.update { if (it == label) null else label }
 

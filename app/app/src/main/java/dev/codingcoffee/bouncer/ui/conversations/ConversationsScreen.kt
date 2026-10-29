@@ -25,10 +25,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MarkChatUnread
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.MarkChatRead
+import androidx.compose.material.icons.outlined.MarkChatUnread
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,13 +38,19 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -85,6 +93,7 @@ fun ConversationsScreen(
     val conversations = vm.conversations.collectAsLazyPagingItems()
     val syncState by vm.syncState.collectAsStateWithLifecycle()
     val label by vm.label.collectAsStateWithLifecycle()
+    val unreadOnly by vm.unreadOnly.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val fabExpanded by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     var selected by remember { mutableStateOf(emptySet<Long>()) }
@@ -120,8 +129,19 @@ fun ConversationsScreen(
                     },
                     actions = {
                         if (!archived) {
-                            IconButton(onClick = onSearch) { Icon(Icons.Filled.Search, "Search") }
-                            IconButton(onClick = onArchived) { Icon(Icons.Outlined.Archive, "Archived") }
+                            WithTooltip("Search") {
+                                IconButton(onClick = onSearch) { Icon(Icons.Filled.Search, "Search") }
+                            }
+                        }
+                        WithTooltip("Unread only") {
+                            IconToggleButton(checked = unreadOnly, onCheckedChange = { vm.toggleUnreadOnly() }) {
+                                Icon(if (unreadOnly) Icons.Filled.MarkChatUnread else Icons.Outlined.MarkChatUnread, "Unread only")
+                            }
+                        }
+                        if (!archived) {
+                            WithTooltip("Archived") {
+                                IconButton(onClick = onArchived) { Icon(Icons.Outlined.Archive, "Archived") }
+                            }
                         }
                     },
                 )
@@ -159,6 +179,7 @@ fun ConversationsScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
                         when {
+                            unreadOnly -> "No unread conversations"
                             label != null -> "No conversations labelled ${label?.name}"
                             archived -> "No archived conversations"
                             else -> "No conversations yet"
@@ -211,6 +232,17 @@ fun ConversationsScreen(
 }
 
 private val ROW_HEIGHT = 76.dp
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WithTooltip(text: String, content: @Composable () -> Unit) {
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+        tooltip = { PlainTooltip { Text(text) } },
+        state = rememberTooltipState(),
+        content = content,
+    )
+}
 
 @Composable
 private fun LabelFilter(selected: Label?, onToggle: (Label) -> Unit) {
