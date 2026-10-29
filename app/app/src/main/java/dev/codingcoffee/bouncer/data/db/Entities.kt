@@ -15,6 +15,8 @@ object Box {
     const val QUEUED = 6
 }
 
+enum class Label { Personal, OTP, Government, Reminder, Transaction, Service, Promotional, Spam, Unknown }
+
 /** SMS rows keep the provider `_id`; MMS rows use the negated provider `_id`. */
 @Immutable
 @Entity(
@@ -31,6 +33,7 @@ data class MessageEntity(
     val read: Boolean,
     val isMms: Boolean,
     val hasAttachment: Boolean,
+    val label: Label? = null,
 ) {
     val isIncoming: Boolean get() = box == Box.INBOX
     val providerId: Long get() = if (isMms) -id else id

@@ -110,8 +110,16 @@ interface MessageDao {
 
 @Dao
 interface ConversationDao {
-    @Query("SELECT * FROM conversations WHERE archived = :archived ORDER BY date DESC")
-    fun paging(archived: Boolean): PagingSource<Int, ConversationEntity>
+    @Query(
+        """
+        SELECT * FROM conversations c WHERE archived = :archived AND (:label IS NULL OR (
+            SELECT label FROM messages m WHERE m.threadId = c.threadId AND m.box = 1
+            ORDER BY m.date DESC, m.id DESC LIMIT 1
+        ) = :label)
+        ORDER BY date DESC
+        """
+    )
+    fun paging(archived: Boolean, label: Label?): PagingSource<Int, ConversationEntity>
 
     @Query("SELECT * FROM conversations WHERE threadId = :threadId")
     fun observe(threadId: Long): Flow<ConversationEntity?>
