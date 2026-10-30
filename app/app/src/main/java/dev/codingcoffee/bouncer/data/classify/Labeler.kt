@@ -3,8 +3,12 @@ package dev.codingcoffee.bouncer.data.classify
 import android.content.Context
 import androidx.room.withTransaction
 import dev.codingcoffee.bouncer.BuildConfig
+import dev.codingcoffee.bouncer.data.Messaging
+import dev.codingcoffee.bouncer.data.contacts.ContactRepository
 import dev.codingcoffee.bouncer.data.db.BouncerDatabase
 import dev.codingcoffee.bouncer.data.db.Label
+import dev.codingcoffee.bouncer.data.db.LabelChangeEntity
+import dev.codingcoffee.bouncer.data.db.MessageEntity
 import dev.codingcoffee.bouncer.data.prefs.SettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,6 +16,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.OutputStream
+import java.time.Instant
 
 sealed interface LabelState {
     data object Idle : LabelState
@@ -23,6 +31,8 @@ class Labeler(
     private val context: Context,
     private val db: BouncerDatabase,
     private val settings: SettingsStore,
+    private val contacts: ContactRepository,
+    private val messaging: Messaging,
     private val scope: CoroutineScope,
 ) {
     private val classifier by lazy { context.assets.open(BuildConfig.SMS_MODEL_ASSET).use(SmsClassifier::load) }
@@ -50,13 +60,75 @@ class Labeler(
             val batch = dao.unlabelled(BATCH)
             if (batch.isEmpty()) break
             if (showProgress) _state.value = LabelState.Sorting(done, total)
-            val predicted = batch.map { it.id to labels[classifier.predict(it.body)] }
+            val overrides = db.labelChanges().overridesFor(batch.map { it.id }).associate { it.messageId to it.toLabel }
+            val predicted = batch.map { it.id to (overrides[it.id] ?: labels[classifier.predict(it.body)]) }
             db.withTransaction { predicted.forEach { (id, label) -> dao.setLabel(id, label) } }
             done += batch.size
             total = done + dao.unlabelledCount()
         }
         _state.value = LabelState.Idle
     }
+
+    suspend fun setManually(messages: List<MessageEntity>, label: Label) {
+        val now = System.currentTimeMillis()
+        val changes = messages.filter { it.isIncoming && it.label != label }.map { message ->
+            val details = messaging.details(message)
+            val scores = classifier.scores(message.body)
+            LabelChangeEntity(
+                messageId = message.id,
+                threadId = message.threadId,
+                address = message.address,
+                body = message.body,
+                receivedAt = message.date,
+                sentAt = details.sentAt,
+                isMms = message.isMms,
+                hasAttachment = message.hasAttachment,
+                isGroup = (db.conversations().byId(message.threadId)?.addressList?.size ?: 1) > 1,
+                senderInContacts = contacts.get(message.address).name != null,
+                sim = details.sim,
+                fromLabel = message.label,
+                toLabel = label,
+                modelLabel = labels[scores.indices.maxBy { scores[it] }],
+                modelScores = JSONObject(classifier.labels.zip(scores.toList()).toMap()).toString(),
+                modelVersion = BuildConfig.SMS_MODEL_ASSET,
+                changedAt = now,
+            )
+        }
+        if (changes.isEmpty()) return
+        db.withTransaction {
+            db.labelChanges().insert(changes)
+            changes.forEach { db.messages().setLabel(it.messageId, label) }
+        }
+    }
+
+    suspend fun exportChanges(out: OutputStream) {
+        val rows = JSONArray()
+        db.labelChanges().all().forEach {
+            rows.put(
+                JSONObject()
+                    .put("messageId", it.messageId)
+                    .put("threadId", it.threadId)
+                    .put("sender", it.address)
+                    .put("text", it.body)
+                    .put("receivedAt", iso(it.receivedAt))
+                    .put("sentAt", it.sentAt?.let(::iso) ?: JSONObject.NULL)
+                    .put("isMms", it.isMms)
+                    .put("hasAttachment", it.hasAttachment)
+                    .put("isGroup", it.isGroup)
+                    .put("senderInContacts", it.senderInContacts)
+                    .put("sim", it.sim ?: JSONObject.NULL)
+                    .put("from", it.fromLabel?.name ?: JSONObject.NULL)
+                    .put("to", it.toLabel.name)
+                    .put("modelLabel", it.modelLabel.name)
+                    .put("modelScores", JSONObject(it.modelScores))
+                    .put("modelVersion", it.modelVersion)
+                    .put("changedAt", iso(it.changedAt)),
+            )
+        }
+        out.bufferedWriter().use { it.write(rows.toString(2)) }
+    }
+
+    private fun iso(millis: Long) = Instant.ofEpochMilli(millis).toString()
 
     private companion object {
         const val BATCH = 500

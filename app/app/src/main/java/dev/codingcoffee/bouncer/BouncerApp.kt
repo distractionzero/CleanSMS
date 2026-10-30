@@ -34,10 +34,10 @@ class AppContainer(context: Context) {
     val db = BouncerDatabase.create(context)
     val contacts = ContactRepository(context)
     val sync = TelephonySync(context, db, settings, scope)
-    val labeler = Labeler(context, db, settings, scope)
     val notifier = Notifier(context, db, contacts)
     val mms = MmsService(context, db, sync)
     val messaging = Messaging(context, db, sync, mms, notifier)
+    val labeler = Labeler(context, db, settings, contacts, messaging, scope)
 }
 
 val Context.container: AppContainer get() = (applicationContext as BouncerApp).container

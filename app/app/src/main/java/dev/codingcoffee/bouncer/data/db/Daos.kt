@@ -124,6 +124,21 @@ interface MessageDao {
 }
 
 @Dao
+interface LabelChangeDao {
+    @Insert
+    suspend fun insert(changes: List<LabelChangeEntity>)
+
+    @Query("SELECT * FROM label_changes ORDER BY id")
+    suspend fun all(): List<LabelChangeEntity>
+
+    @Query("SELECT COUNT(*) FROM label_changes")
+    fun observeCount(): Flow<Int>
+
+    @Query("SELECT messageId, toLabel FROM label_changes WHERE messageId IN (:messageIds) ORDER BY id")
+    suspend fun overridesFor(messageIds: List<Long>): List<LabelOverride>
+}
+
+@Dao
 interface ConversationDao {
     @Query(
         """

@@ -10,6 +10,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.automirrored.outlined.Forward
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.NewLabel
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.AlertDialog
@@ -85,6 +87,7 @@ import dev.codingcoffee.bouncer.data.MessageDetails
 import dev.codingcoffee.bouncer.data.contacts.Contact
 import dev.codingcoffee.bouncer.data.contacts.ContactRepository
 import dev.codingcoffee.bouncer.data.db.Box as MessageBox
+import dev.codingcoffee.bouncer.data.db.Label
 import dev.codingcoffee.bouncer.data.db.MessageEntity
 import dev.codingcoffee.bouncer.notify.ActiveThread
 import dev.codingcoffee.bouncer.ui.components.Avatar
@@ -117,6 +120,7 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
     var selected by remember { mutableStateOf(emptySet<Long>()) }
     var selectionMenuOpen by remember { mutableStateOf(false) }
     var confirmDeleteMessages by remember { mutableStateOf(false) }
+    var pickingLabel by remember { mutableStateOf(false) }
     var details by remember { mutableStateOf<MessageDetails?>(null) }
     val selecting = selected.isNotEmpty()
     val scope = rememberCoroutineScope()
@@ -189,6 +193,10 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
                                         val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, it)
                                         context.startActivity(Intent.createChooser(send, null))
                                     }
+                                })
+                                DropdownMenuItem(text = { Text("Change label") }, leadingIcon = { Icon(Icons.Outlined.NewLabel, null) }, onClick = {
+                                    selectionMenuOpen = false
+                                    pickingLabel = true
                                 })
                                 DropdownMenuItem(text = { Text("Select all") }, leadingIcon = { Icon(Icons.Outlined.SelectAll, null) }, onClick = {
                                     selectionMenuOpen = false
@@ -325,6 +333,33 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
                 }) { Text("Delete") }
             },
             dismissButton = { TextButton(onClick = { confirmDeleteMessages = false }) { Text("Cancel") } },
+        )
+    }
+
+    if (pickingLabel) {
+        AlertDialog(
+            onDismissRequest = { pickingLabel = false },
+            title = { Text("Change label") },
+            text = {
+                Column {
+                    Label.entries.forEach { label ->
+                        Text(
+                            label.name,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable {
+                                    vm.setLabel(selected, label)
+                                    selected = emptySet()
+                                    pickingLabel = false
+                                }
+                                .padding(horizontal = 8.dp, vertical = 12.dp),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { pickingLabel = false }) { Text("Cancel") } },
         )
     }
 

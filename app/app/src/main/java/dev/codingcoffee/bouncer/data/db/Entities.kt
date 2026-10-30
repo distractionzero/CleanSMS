@@ -72,6 +72,33 @@ data class ConversationEntity(
     }
 }
 
+@Entity(tableName = "label_changes", indices = [Index("messageId")])
+data class LabelChangeEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val messageId: Long,
+    val threadId: Long,
+    val address: String,
+    val body: String,
+    val receivedAt: Long,
+    val sentAt: Long?,
+    val isMms: Boolean,
+    val hasAttachment: Boolean,
+    val isGroup: Boolean,
+    val senderInContacts: Boolean,
+    val sim: String?,
+    val fromLabel: Label?,
+    val toLabel: Label,
+    val modelLabel: Label,
+    val modelScores: String,
+    val modelVersion: String,
+    val changedAt: Long,
+)
+
+data class LabelOverride(
+    val messageId: Long,
+    val toLabel: Label,
+)
+
 data class ThreadStats(
     val threadId: Long,
     val body: String,

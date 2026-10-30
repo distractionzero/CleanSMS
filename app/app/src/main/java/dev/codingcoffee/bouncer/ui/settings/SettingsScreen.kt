@@ -4,6 +4,8 @@ import android.app.UiModeManager
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -22,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Policy
@@ -59,7 +62,10 @@ import dev.codingcoffee.bouncer.container
 import dev.codingcoffee.bouncer.data.DebugSeeder
 import dev.codingcoffee.bouncer.data.db.MessageStats
 import dev.codingcoffee.bouncer.data.prefs.ThemeMode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,6 +79,20 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
     val stats by statsFlow.collectAsStateWithLifecycle(MessageStats(0, 0, 0, 0))
     var confirmDeleteAll by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf(false) }
+    val labelChangesFlow = remember { container.db.labelChanges().observeCount() }
+    val labelChanges by labelChangesFlow.collectAsStateWithLifecycle(0)
+    var exportStatus by remember { mutableStateOf<String?>(null) }
+    val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        exportStatus = "Exporting…"
+        scope.launch {
+            exportStatus = runCatching {
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openOutputStream(uri)!!.use { container.labeler.exportChanges(it) }
+                }
+            }.fold({ "Exported" }, { "Export failed" })
+        }
+    }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(
@@ -139,6 +159,14 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
 
             SectionHeader("Data")
             SettingsCard {
+                SettingRow(
+                    Icons.Filled.FileDownload,
+                    "Export label changes",
+                    exportStatus ?: "$labelChanges manual label changes",
+                    chevron = false,
+                ) {
+                    if (labelChanges > 0) exporter.launch("bouncer-label-changes-${LocalDate.now()}.json")
+                }
                 SettingRow(
                     Icons.Filled.DeleteForever,
                     "Delete all messages",
