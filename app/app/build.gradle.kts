@@ -65,6 +65,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            versionNameSuffix = "-dev"
+        }
         release {
             signingConfig = signingConfigs.findByName("release")
             optimization {

@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Palette
@@ -166,6 +167,7 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
             SettingsCard {
                 SettingRow(Icons.Filled.Policy, "Privacy policy", null, onClick = onPrivacyPolicy)
                 SettingRow(Icons.Filled.Description, "Open source licenses", null, onClick = onLicenses)
+                SettingRow(Icons.Filled.Info, "Version", BuildConfig.VERSION_NAME, chevron = false)
             }
 
             SectionHeader("Data")
@@ -288,10 +290,10 @@ private fun SettingRow(
     subtitle: String?,
     chevron: Boolean = true,
     destructive: Boolean = false,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)? = null,
 ) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (destructive) RowIcon(icon, MaterialTheme.colorScheme.error) else RowIcon(icon)
