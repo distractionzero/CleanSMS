@@ -187,6 +187,8 @@ private fun ReceivedPerLabel(since: Long) {
         Label.entries.map { it to (counts[it] ?: 0) }.sortedByDescending { it.second }
     }
     val peak = rows.maxOf { it.second }
+    val total = rows.sumOf { it.second }
+    val numberStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
     val numberFormat = NumberFormat.getIntegerInstance()
 
     ChartTitle("Received per label")
@@ -209,7 +211,14 @@ private fun ReceivedPerLabel(since: Long) {
                     Text(
                         numberFormat.format(count),
                         modifier = Modifier.width(56.dp),
-                        style = MaterialTheme.typography.labelMedium,
+                        style = numberStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.End,
+                    )
+                    Text(
+                        percent(count, total),
+                        modifier = Modifier.width(48.dp),
+                        style = numberStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.End,
                     )
@@ -217,6 +226,11 @@ private fun ReceivedPerLabel(since: Long) {
             }
         }
     }
+}
+
+private fun percent(count: Int, total: Int): String {
+    val value = count * 100.0 / total
+    return if (count > 0 && value < 1) "<1%" else "${value.roundToInt()}%"
 }
 
 private fun DrawScope.drawTooltip(
