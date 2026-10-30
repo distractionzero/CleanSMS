@@ -140,6 +140,18 @@ $ANDROID_HOME/build-tools/36.0.0/apksigner verify --print-certs app/build/output
 The output is `app/build/outputs/apk/release/app-release.apk`. If it's named `app-release-unsigned.apk`, the
 signing properties weren't picked up.
 
+### Publish a GitHub release
+
+From a clean, up-to-date `main` inside `nix develop`, with a `GITHUB_TOKEN` that can write releases
+(fine-grained, Contents: read and write, this repo only):
+
+```sh
+just release patch   # or minor / major
+```
+
+This bumps `versionName` and `versionCode`, builds the signed APK, commits and tags `vX.Y.Z`, pushes both,
+and creates a GitHub release with generated notes and `bouncer-vX.Y.Z.apk` attached.
+
 ### Install and run on the emulator
 
 Debug and release builds are signed with different keys, so uninstall the debug build first. This wipes the

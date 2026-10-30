@@ -40,6 +40,8 @@
               android.androidsdk
               pkgs.android-studio
               pkgs.jdk25
+              pkgs.just
+              pkgs.jq
             ];
             ANDROID_HOME = sdk;
             ANDROID_SDK_ROOT = sdk;
