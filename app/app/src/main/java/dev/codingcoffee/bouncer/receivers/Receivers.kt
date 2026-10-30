@@ -76,10 +76,11 @@ class PackageReplacedReceiver : BroadcastReceiver() {
 class NotificationActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val threadId = intent.getLongExtra(EXTRA_THREAD_ID, -1).takeIf { it >= 0 } ?: return
+        val messageId = intent.getLongExtra(EXTRA_MESSAGE_ID, 0)
         val container = context.container
         when (intent.action) {
-            ACTION_DISMISS -> container.notifier.cancel(threadId)
-            ACTION_MARK_READ -> runAsync(context) { container.messaging.markRead(threadId) }
+            ACTION_DISMISS -> container.notifier.cancel(threadId, messageId)
+            ACTION_MARK_READ -> runAsync(context) { container.messaging.markRead(threadId, messageId) }
             ACTION_REPLY -> {
                 val text = RemoteInput.getResultsFromIntent(intent)?.getCharSequence(KEY_REPLY)?.toString()
                 if (text.isNullOrBlank()) return
@@ -98,6 +99,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val ACTION_MARK_READ = "dev.codingcoffee.bouncer.MARK_READ"
         const val ACTION_DISMISS = "dev.codingcoffee.bouncer.DISMISS"
         const val EXTRA_THREAD_ID = "thread_id"
+        const val EXTRA_MESSAGE_ID = "message_id"
         const val KEY_REPLY = "reply"
     }
 }

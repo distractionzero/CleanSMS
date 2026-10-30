@@ -122,17 +122,26 @@ class Messaging(
 
     suspend fun markRead(threadId: Long) = withContext(Dispatchers.IO) {
         notifier.cancel(threadId)
-        val values = ContentValues().apply {
-            put(Telephony.Sms.READ, 1)
-            put(Telephony.Sms.SEEN, 1)
-        }
         val where = "${Telephony.Sms.THREAD_ID} = $threadId AND ${Telephony.Sms.READ} = 0"
-        resolver.update(Telephony.Sms.CONTENT_URI, values, where, null)
-        resolver.update(Telephony.Mms.CONTENT_URI, values, where, null)
+        resolver.update(Telephony.Sms.CONTENT_URI, readValues(), where, null)
+        resolver.update(Telephony.Mms.CONTENT_URI, readValues(), where, null)
         db.withTransaction {
             db.messages().markThreadRead(threadId)
             db.conversations().clearUnread(threadId)
         }
+    }
+
+    suspend fun markRead(threadId: Long, messageId: Long) = withContext(Dispatchers.IO) {
+        notifier.cancel(threadId, messageId)
+        val message = db.messages().byId(messageId) ?: return@withContext
+        resolver.update(providerUri(message), readValues(), null, null)
+        db.messages().markRead(messageId)
+        sync.refreshThreads(listOf(threadId))
+    }
+
+    private fun readValues() = ContentValues().apply {
+        put(Telephony.Sms.READ, 1)
+        put(Telephony.Sms.SEEN, 1)
     }
 
     suspend fun setArchived(threadIds: List<Long>, archived: Boolean) =

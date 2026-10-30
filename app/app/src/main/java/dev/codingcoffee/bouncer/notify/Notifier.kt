@@ -40,33 +40,37 @@ class Notifier(
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
-    suspend fun notifyThread(threadId: Long, restoreSince: Long? = null) {
-        val restore = restoreSince != null
+    suspend fun notifyThread(threadId: Long) {
+        val message = db.messages().unreadInThread(threadId).lastOrNull() ?: return cancel(threadId)
+        post(message, silent = false)
+    }
+
+    /** The system clears our notifications on app update; re-post the ones that were showing. */
+    suspend fun restore() = settings.notifiedMessages.forEach { id ->
+        val message = db.messages().byId(id)
+        if (message != null && message.isIncoming && !message.read) post(message, silent = true)
+        else settings.setMessageNotified(id, false)
+    }
+
+    private suspend fun post(message: MessageEntity, silent: Boolean) {
+        val threadId = message.threadId
         if (ActiveThread.id == threadId) return
         if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
-        val unread = db.messages().unreadInThread(threadId)
-            .let { all -> if (restore) all.filter { it.date >= restoreSince!! }.takeLast(MAX_RESTORED_MESSAGES) else all.takeLast(1) }
-        if (unread.isEmpty()) return cancel(threadId)
-        if (labelOf(unread.last()) in settings.mutedLabels.value) return
-        val conversation = db.conversations().byId(threadId)
-        val addresses = conversation?.addressList.orEmpty()
+        val label = labelOf(message)
+        if (label in settings.mutedLabels.value) return settings.setMessageNotified(message.id, false)
+        val addresses = db.conversations().byId(threadId)?.addressList.orEmpty()
 
-        val shown = context.getSystemService(NotificationManager::class.java).activeNotifications
-            .firstOrNull { it.id == threadId.toInt() }?.notification
-        val style = shown?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }
-            ?: NotificationCompat.MessagingStyle(Person.Builder().setName("You").build())
+        val style = NotificationCompat.MessagingStyle(Person.Builder().setName("You").build())
         if (addresses.size > 1) {
             style.isGroupConversation = true
             style.conversationTitle = addresses.map { contacts.get(it).displayName }.joinToString(", ")
         }
-        unread.forEach { message ->
-            val sender = contacts.get(message.address.ifBlank { addresses.firstOrNull().orEmpty() })
-            val text = message.body.ifBlank { if (message.hasAttachment) "Photo" else "Message" }
-            val name = labelOf(message).takeIf { it != Label.Unknown }?.let { "${sender.displayName} · ${it.name}" } ?: sender.displayName
-            style.addMessage(text, message.date, Person.Builder().setName(name).setKey(sender.address).build())
-        }
+        val sender = contacts.get(message.address.ifBlank { addresses.firstOrNull().orEmpty() })
+        val text = message.body.ifBlank { if (message.hasAttachment) "Photo" else "Message" }
+        val name = label.takeIf { it != Label.Unknown }?.let { "${sender.displayName} · ${it.name}" } ?: sender.displayName
+        style.addMessage(text, message.date, Person.Builder().setName(name).setKey(sender.address).build())
 
-        val requestCode = threadId.toInt()
+        val requestCode = message.id.toInt()
         val open = PendingIntent.getActivity(
             context, requestCode,
             Intent(context, MainActivity::class.java)
@@ -77,17 +81,17 @@ class Notifier(
         )
         val reply = PendingIntent.getBroadcast(
             context, requestCode,
-            actionIntent(NotificationActionReceiver.ACTION_REPLY, threadId),
+            actionIntent(NotificationActionReceiver.ACTION_REPLY, message),
             PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val markRead = PendingIntent.getBroadcast(
             context, requestCode,
-            actionIntent(NotificationActionReceiver.ACTION_MARK_READ, threadId),
+            actionIntent(NotificationActionReceiver.ACTION_MARK_READ, message),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val dismiss = PendingIntent.getBroadcast(
             context, requestCode,
-            actionIntent(NotificationActionReceiver.ACTION_DISMISS, threadId),
+            actionIntent(NotificationActionReceiver.ACTION_DISMISS, message),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val replyAction = NotificationCompat.Action.Builder(R.drawable.ic_notification, "Reply", reply)
@@ -107,32 +111,32 @@ class Notifier(
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(open)
             .setDeleteIntent(dismiss)
-            .setSilent(restore)
+            .setSilent(silent)
             .setAutoCancel(true)
-            .setOnlyAlertOnce(false)
+            .setOnlyAlertOnce(true)
             .addAction(replyAction)
             .addAction(readAction)
             .build()
         @Suppress("MissingPermission")
-        manager.notify(threadId.toInt(), notification)
-        val since = if (shown == null) unread.first().date else settings.notifiedThreads[threadId] ?: unread.first().date
-        settings.setThreadNotified(threadId, since)
+        manager.notify(threadId.toString(), message.id.toInt(), notification)
+        settings.setMessageNotified(message.id, true)
     }
 
-    /** The system clears our notifications on app update; re-post the ones that were showing. */
-    suspend fun restore() = settings.notifiedThreads.forEach { (threadId, since) -> notifyThread(threadId, since) }
+    fun cancel(threadId: Long) = manager.activeNotifications
+        .filter { it.tag == threadId.toString() }
+        .forEach { cancel(threadId, it.id.toLong()) }
 
-    fun cancel(threadId: Long) {
-        manager.cancel(threadId.toInt())
-        settings.setThreadNotified(threadId, null)
+    fun cancel(threadId: Long, messageId: Long) {
+        manager.cancel(threadId.toString(), messageId.toInt())
+        settings.setMessageNotified(messageId, false)
     }
 
-    private fun actionIntent(action: String, threadId: Long) =
+    private fun actionIntent(action: String, message: MessageEntity) =
         Intent(action, null, context, NotificationActionReceiver::class.java)
-            .putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, threadId)
+            .putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, message.threadId)
+            .putExtra(NotificationActionReceiver.EXTRA_MESSAGE_ID, message.id)
 
     companion object {
         const val CHANNEL_MESSAGES = "messages"
-        private const val MAX_RESTORED_MESSAGES = 25
     }
 }
