@@ -29,6 +29,7 @@ class ConversationsViewModel(private val container: AppContainer, archived: Bool
     }.cachedIn(viewModelScope)
 
     val syncState = container.sync.state
+    val labelState = container.labeler.state
 
     fun toggleUnreadOnly() = _unreadOnly.update { !it }
 

@@ -133,21 +133,26 @@ fun MessageItem(
                     }
                 }
             }
-            if (!layout.joinsNewer || message.box != MessageBox.INBOX && message.box != MessageBox.SENT) {
-                Status(message, Modifier.align(if (incoming) Alignment.Start else Alignment.End), onRetry)
+            if (!layout.joinsNewer || selected && message.label != null || message.box != MessageBox.INBOX && message.box != MessageBox.SENT) {
+                Status(message, !layout.joinsNewer, selected, Modifier.align(if (incoming) Alignment.Start else Alignment.End), onRetry)
             }
         }
     }
 }
 
 @Composable
-private fun Status(message: MessageEntity, modifier: Modifier, onRetry: (MessageEntity) -> Unit) {
+private fun Status(message: MessageEntity, showTime: Boolean, showLabel: Boolean, modifier: Modifier, onRetry: (MessageEntity) -> Unit) {
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
     val (text, color) = when (message.box) {
         MessageBox.OUTBOX, MessageBox.QUEUED -> "Sending…" to colors.onSurfaceVariant
         MessageBox.FAILED -> "Not sent · Tap to retry" to colors.error
-        else -> remember(message.date) { TimeFormat.clock(context, message.date) } to colors.onSurfaceVariant
+        else -> remember(message.date, message.label, showTime, showLabel) {
+            listOfNotNull(
+                if (showTime) TimeFormat.clock(context, message.date) else null,
+                if (showLabel) message.label?.name else null,
+            ).joinToString(" · ")
+        } to colors.onSurfaceVariant
     }
     Text(
         text,

@@ -106,6 +106,21 @@ interface MessageDao {
 
     @Query("DELETE FROM messages WHERE threadId >= :minThreadId")
     suspend fun deleteThreadsFrom(minThreadId: Long)
+
+    @Query("SELECT id, body FROM messages WHERE box = 1 AND label IS NULL ORDER BY date DESC LIMIT :limit")
+    suspend fun unlabelled(limit: Int): List<MessageText>
+
+    @Query("SELECT COUNT(*) FROM messages WHERE box = 1 AND label IS NULL")
+    suspend fun unlabelledCount(): Int
+
+    @Query("SELECT COUNT(*) FROM messages WHERE box = 1 AND label IS NULL")
+    fun observeUnlabelledCount(): Flow<Int>
+
+    @Query("UPDATE messages SET label = :label WHERE id = :id")
+    suspend fun setLabel(id: Long, label: Label)
+
+    @Query("UPDATE messages SET label = NULL WHERE label IS NOT NULL")
+    suspend fun clearLabels()
 }
 
 @Dao

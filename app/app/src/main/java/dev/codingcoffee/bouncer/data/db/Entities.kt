@@ -88,6 +88,11 @@ data class MessageStats(
     val conversations: Int,
 )
 
+data class MessageText(
+    val id: Long,
+    val body: String,
+)
+
 data class DailyCount(
     val day: String,
     val count: Int,

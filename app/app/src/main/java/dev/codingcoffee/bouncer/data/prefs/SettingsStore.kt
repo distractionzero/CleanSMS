@@ -33,10 +33,15 @@ class SettingsStore(context: Context) {
         get() = prefs.getLong(KEY_LAST_MMS, 0)
         set(value) = prefs.edit { putLong(KEY_LAST_MMS, value) }
 
+    var labelModel: String?
+        get() = prefs.getString(KEY_LABEL_MODEL, null)
+        set(value) = prefs.edit { putString(KEY_LABEL_MODEL, value) }
+
     private companion object {
         const val KEY_THEME = "theme_mode"
         const val KEY_SYNCED = "initial_sync_done"
         const val KEY_LAST_SMS = "last_sms_id"
         const val KEY_LAST_MMS = "last_mms_id"
+        const val KEY_LABEL_MODEL = "label_model"
     }
 }

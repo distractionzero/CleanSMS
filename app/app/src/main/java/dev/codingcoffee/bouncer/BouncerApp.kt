@@ -3,6 +3,7 @@ package dev.codingcoffee.bouncer
 import android.app.Application
 import android.content.Context
 import dev.codingcoffee.bouncer.data.Messaging
+import dev.codingcoffee.bouncer.data.classify.Labeler
 import dev.codingcoffee.bouncer.data.contacts.ContactRepository
 import dev.codingcoffee.bouncer.data.db.BouncerDatabase
 import dev.codingcoffee.bouncer.data.mms.MmsService
@@ -23,6 +24,7 @@ class BouncerApp : Application() {
         container.notifier.ensureChannel()
         container.contacts.onPermissionChanged()
         container.sync.start()
+        container.labeler.start()
     }
 }
 
@@ -32,6 +34,7 @@ class AppContainer(context: Context) {
     val db = BouncerDatabase.create(context)
     val contacts = ContactRepository(context)
     val sync = TelephonySync(context, db, settings, scope)
+    val labeler = Labeler(context, db, settings, scope)
     val notifier = Notifier(context, db, contacts)
     val mms = MmsService(context, db, sync)
     val messaging = Messaging(context, db, sync, mms, notifier)

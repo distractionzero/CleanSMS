@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.MarkChatRead
 import androidx.compose.material.icons.outlined.MarkChatUnread
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -70,6 +71,7 @@ import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import dev.codingcoffee.bouncer.container
+import dev.codingcoffee.bouncer.data.classify.LabelState
 import dev.codingcoffee.bouncer.data.db.ConversationEntity
 import dev.codingcoffee.bouncer.data.db.Label
 import dev.codingcoffee.bouncer.data.sync.SyncState
@@ -94,6 +96,7 @@ fun ConversationsScreen(
     val syncState by vm.syncState.collectAsStateWithLifecycle()
     val label by vm.label.collectAsStateWithLifecycle()
     val unreadOnly by vm.unreadOnly.collectAsStateWithLifecycle()
+    val labelState by vm.labelState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val fabExpanded by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     var selected by remember { mutableStateOf(emptySet<Long>()) }
@@ -160,6 +163,18 @@ fun ConversationsScreen(
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
+            (labelState as? LabelState.Sorting)?.let { state ->
+                Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text("Sorting messages… ${state.done} of ${state.total}", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = { if (state.total == 0) 0f else state.done.toFloat() / state.total },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
             LabelFilter(selected = label, onToggle = vm::toggleLabel)
             (syncState as? SyncState.Importing)?.let { state ->
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {

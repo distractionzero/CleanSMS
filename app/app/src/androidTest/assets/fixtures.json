@@ -1,0 +1,196 @@
+{
+ "labels": [
+  "Government",
+  "OTP",
+  "Personal",
+  "Promotional",
+  "Reminder",
+  "Service",
+  "Spam",
+  "Transaction",
+  "Unknown"
+ ],
+ "tolerance": 0.001,
+ "cases": [
+  {
+   "text": "123456 is your OTP for login. Do not share it with anyone.",
+   "template": "<n> is your otp for login. do not share it with anyone.",
+   "scores": [
+    -1.437308,
+    2.977095,
+    -1.695055,
+    -1.613433,
+    -1.486749,
+    -1.686368,
+    -1.75093,
+    -1.88665,
+    -1.231621
+   ]
+  },
+  {
+   "text": "Sent Rs.250.00\nFrom XYZ Bank A/C *1234\nTo Example Store\nOn 01/01/26\nRef 123456789012",
+   "template": "sent rs.<n>.<n> from xyz bank a/c *<n> to example store on <n>/<n>/<n> ref <n>",
+   "scores": [
+    -1.224121,
+    -1.366113,
+    -1.476235,
+    -0.66923,
+    -1.215697,
+    -1.399955,
+    -1.272931,
+    0.787546,
+    -1.100832
+   ]
+  },
+  {
+   "text": "Flat 50% OFF on all orders! Shop now https://example.com/sale",
+   "template": "flat <n>% off on all orders! shop now <url>",
+   "scores": [
+    -1.375205,
+    -1.698093,
+    -1.479534,
+    1.51472,
+    -1.375168,
+    -1.497483,
+    -0.984069,
+    -1.441313,
+    -1.103431
+   ]
+  },
+  {
+   "text": "Your account will be BLOCKED today. Update KYC immediately: bit.ly/abc123",
+   "template": "your account will be blocked today. update kyc immediately: <url>",
+   "scores": [
+    -1.000031,
+    -1.183799,
+    -0.57278,
+    -1.366555,
+    -0.472515,
+    -0.573725,
+    0.90239,
+    -1.391461,
+    -1.096778
+   ]
+  },
+  {
+   "text": "Hey, are we still meeting at 7?",
+   "template": "hey, are we still meeting at <n>?",
+   "scores": [
+    -1.113441,
+    -1.145699,
+    0.009275,
+    -0.047758,
+    -1.08698,
+    -0.486303,
+    -0.879684,
+    -1.249014,
+    -1.059994
+   ]
+  },
+  {
+   "text": "Your electricity bill of Rs.1,234 is due on 05-11-2026. Pay at www.example.com/pay",
+   "template": "your electricity bill of rs.<n>,<n> is due on <n>-<n>-<n>. pay at <url>",
+   "scores": [
+    -1.112066,
+    -1.106263,
+    -2.038994,
+    -1.424874,
+    1.500891,
+    -1.71054,
+    -0.936639,
+    -0.893262,
+    -1.172478
+   ]
+  },
+  {
+   "text": "आपका ऑर्डर भेज दिया गया है। ट्रैक करें: https://example.in/t/1 ९८७६",
+   "template": "आपका ऑर्डर भेज दिया गया है। ट्रैक करें: <url> <n>",
+   "scores": [
+    -0.477002,
+    -1.014741,
+    -1.031452,
+    -0.282929,
+    -0.725854,
+    -0.917963,
+    -0.619317,
+    -1.094971,
+    -1.015317
+   ]
+  },
+  {
+   "text": "ನಿಮ್ಮ ಬಿಲ್ ಪಾವತಿ ಬಾಕಿ ಇದೆ",
+   "template": "ನಿಮ್ಮ ಬಿಲ್ ಪಾವತಿ ಬಾಕಿ ಇದೆ",
+   "scores": [
+    -0.591156,
+    -0.889097,
+    0.034486,
+    -0.402928,
+    -1.093816,
+    -0.813323,
+    -0.872321,
+    -0.95461,
+    -0.970086
+   ]
+  },
+  {
+   "text": "Bhai kal milte hai 😀👍 ok",
+   "template": "bhai kal milte hai 😀👍 ok",
+   "scores": [
+    -0.875369,
+    -1.029591,
+    0.921688,
+    -0.745707,
+    -1.089775,
+    -1.037972,
+    -0.870865,
+    -0.987594,
+    -0.998508
+   ]
+  },
+  {
+   "text": "  multiple   spaces\tand\nnew lines  ",
+   "template": "multiple spaces and new lines",
+   "scores": [
+    -0.694546,
+    -1.043589,
+    -0.352516,
+    0.023608,
+    -1.209196,
+    -0.801028,
+    -0.784741,
+    -0.987172,
+    -1.031553
+   ]
+  },
+  {
+   "text": "Ünïcödé ÀÉÎ test ½ ² İstanbul ΟΔΟΣ snake_case a",
+   "template": "ünïcödé àéî test ½ ² i̇stanbul οδος snake_case a",
+   "scores": [
+    -0.892104,
+    -1.037361,
+    0.533492,
+    -0.434529,
+    -1.043323,
+    -1.096851,
+    -0.956748,
+    -1.042071,
+    -0.187085
+   ]
+  },
+  {
+   "text": "",
+   "template": "",
+   "scores": [
+    -0.775662,
+    -0.876506,
+    0.129498,
+    -0.336282,
+    -1.093816,
+    -0.797175,
+    -0.862818,
+    -0.944251,
+    -0.967158
+   ]
+  }
+ ]
+}
