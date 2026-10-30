@@ -104,6 +104,17 @@ interface MessageDao {
     )
     fun receivedPerDay(since: Long): Flow<List<DailyCount>>
 
+    @Query(
+        """
+        SELECT CAST(strftime('%H', date / 1000, 'unixepoch', 'localtime') AS INTEGER) AS hour, COUNT(*) AS count
+        FROM messages WHERE box = 1 AND date >= :since AND (:label IS NULL OR label = :label) GROUP BY hour
+        """
+    )
+    fun receivedPerHour(since: Long, label: Label?): Flow<List<HourlyCount>>
+
+    @Query("SELECT label, COUNT(*) AS count FROM messages WHERE box = 1 AND date >= :since AND label IS NOT NULL GROUP BY label")
+    fun receivedPerLabel(since: Long): Flow<List<LabelCount>>
+
     @Query("DELETE FROM messages WHERE threadId >= :minThreadId")
     suspend fun deleteThreadsFrom(minThreadId: Long)
 

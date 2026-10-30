@@ -120,6 +120,16 @@ data class MessageText(
     val body: String,
 )
 
+data class HourlyCount(
+    val hour: Int,
+    val count: Int,
+)
+
+data class LabelCount(
+    val label: Label,
+    val count: Int,
+)
+
 data class DailyCount(
     val day: String,
     val count: Int,

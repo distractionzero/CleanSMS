@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -36,7 +34,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconToggleButton
@@ -73,9 +70,9 @@ import androidx.paging.compose.itemKey
 import dev.codingcoffee.bouncer.container
 import dev.codingcoffee.bouncer.data.classify.LabelState
 import dev.codingcoffee.bouncer.data.db.ConversationEntity
-import dev.codingcoffee.bouncer.data.db.Label
 import dev.codingcoffee.bouncer.data.sync.SyncState
 import dev.codingcoffee.bouncer.ui.components.Avatar
+import dev.codingcoffee.bouncer.ui.components.LabelFilter
 import dev.codingcoffee.bouncer.ui.components.rememberContacts
 import dev.codingcoffee.bouncer.ui.components.title
 import dev.codingcoffee.bouncer.util.TimeFormat
@@ -257,22 +254,6 @@ private fun WithTooltip(text: String, content: @Composable () -> Unit) {
         state = rememberTooltipState(),
         content = content,
     )
-}
-
-@Composable
-private fun LabelFilter(selected: Label?, onToggle: (Label) -> Unit) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        items(Label.entries) { label ->
-            FilterChip(
-                selected = label == selected,
-                onClick = { onToggle(label) },
-                label = { Text(label.name) },
-            )
-        }
-    }
 }
 
 private fun Set<Long>.toggle(id: Long): Set<Long> = if (id in this) this - id else this + id
