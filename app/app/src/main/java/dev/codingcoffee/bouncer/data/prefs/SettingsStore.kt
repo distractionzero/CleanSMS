@@ -49,6 +49,19 @@ class SettingsStore(context: Context) {
         get() = prefs.getString(KEY_LABEL_MODEL, null)
         set(value) = prefs.edit { putString(KEY_LABEL_MODEL, value) }
 
+    /** Thread id to the date of the oldest message in its shown notification. */
+    val notifiedThreads: Map<Long, Long>
+        get() = prefs.getStringSet(KEY_NOTIFIED_THREADS, emptySet()).orEmpty().mapNotNull { entry ->
+            val (threadId, since) = entry.split(':').takeIf { it.size == 2 } ?: return@mapNotNull null
+            (threadId.toLongOrNull() ?: return@mapNotNull null) to (since.toLongOrNull() ?: return@mapNotNull null)
+        }.toMap()
+
+    @Synchronized
+    fun setThreadNotified(threadId: Long, since: Long?) {
+        val updated = notifiedThreads - threadId + listOfNotNull(since?.let { threadId to it })
+        prefs.edit { putStringSet(KEY_NOTIFIED_THREADS, updated.map { (id, date) -> "$id:$date" }.toSet()) }
+    }
+
     private companion object {
         const val KEY_THEME = "theme_mode"
         const val KEY_SYNCED = "initial_sync_done"
@@ -56,5 +69,6 @@ class SettingsStore(context: Context) {
         const val KEY_LAST_MMS = "last_mms_id"
         const val KEY_LABEL_MODEL = "label_model"
         const val KEY_MUTED_LABELS = "muted_labels"
+        const val KEY_NOTIFIED_THREADS = "notified_threads"
     }
 }

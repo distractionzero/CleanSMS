@@ -40,10 +40,12 @@ class Notifier(
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
-    suspend fun notifyThread(threadId: Long) {
+    suspend fun notifyThread(threadId: Long, restoreSince: Long? = null) {
+        val restore = restoreSince != null
         if (ActiveThread.id == threadId) return
         if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
-        val unread = db.messages().unreadInThread(threadId).takeLast(1)
+        val unread = db.messages().unreadInThread(threadId)
+            .let { all -> if (restore) all.filter { it.date >= restoreSince!! }.takeLast(MAX_RESTORED_MESSAGES) else all.takeLast(1) }
         if (unread.isEmpty()) return cancel(threadId)
         if (labelOf(unread.last()) in settings.mutedLabels.value) return
         val conversation = db.conversations().byId(threadId)
@@ -82,6 +84,11 @@ class Notifier(
             actionIntent(NotificationActionReceiver.ACTION_MARK_READ, threadId),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+        val dismiss = PendingIntent.getBroadcast(
+            context, requestCode,
+            actionIntent(NotificationActionReceiver.ACTION_DISMISS, threadId),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
         val replyAction = NotificationCompat.Action.Builder(R.drawable.ic_notification, "Reply", reply)
             .addRemoteInput(RemoteInput.Builder(NotificationActionReceiver.KEY_REPLY).setLabel("Message").build())
             .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
@@ -98,6 +105,8 @@ class Notifier(
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(open)
+            .setDeleteIntent(dismiss)
+            .setSilent(restore)
             .setAutoCancel(true)
             .setOnlyAlertOnce(false)
             .addAction(replyAction)
@@ -105,9 +114,17 @@ class Notifier(
             .build()
         @Suppress("MissingPermission")
         manager.notify(threadId.toInt(), notification)
+        val since = if (shown == null) unread.first().date else settings.notifiedThreads[threadId] ?: unread.first().date
+        settings.setThreadNotified(threadId, since)
     }
 
-    fun cancel(threadId: Long) = manager.cancel(threadId.toInt())
+    /** The system clears our notifications on app update; re-post the ones that were showing. */
+    suspend fun restore() = settings.notifiedThreads.forEach { (threadId, since) -> notifyThread(threadId, since) }
+
+    fun cancel(threadId: Long) {
+        manager.cancel(threadId.toInt())
+        settings.setThreadNotified(threadId, null)
+    }
 
     private fun actionIntent(action: String, threadId: Long) =
         Intent(action, null, context, NotificationActionReceiver::class.java)
@@ -115,5 +132,6 @@ class Notifier(
 
     companion object {
         const val CHANNEL_MESSAGES = "messages"
+        private const val MAX_RESTORED_MESSAGES = 25
     }
 }
