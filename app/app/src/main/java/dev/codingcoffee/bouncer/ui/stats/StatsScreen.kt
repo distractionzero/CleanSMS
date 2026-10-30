@@ -50,6 +50,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -330,6 +331,8 @@ private fun DailyChart(points: List<Pair<LocalDate, Int>>, modifier: Modifier) {
     }
 }
 
+private const val DAY_START_HOUR = 3
+
 @Composable
 private fun HourlyChart(counts: IntArray, modifier: Modifier) {
     val context = LocalContext.current
@@ -348,11 +351,13 @@ private fun HourlyChart(counts: IntArray, modifier: Modifier) {
     var touchX by remember { mutableStateOf<Float?>(null) }
 
     fun hour(h: Int) = LocalTime.of(h % 24, 0).format(hourFormat)
+    fun hourAt(slot: Int) = (slot + DAY_START_HOUR) % 24
+    fun slotOf(hour: Int) = (hour - DAY_START_HOUR + 24) % 24
 
     Canvas(modifier.touchX { touchX = it }) {
         val yLabels = listOf(top, top / 2, 0).map { measurer.measure(numberFormat.format(it), labelStyle) }
-        val xTicks = listOf(0, 6, 12, 18)
-        val xLabels = xTicks.map { measurer.measure(hour(it), labelStyle) }
+        val markers = listOf(9, 21)
+        val xLabels = markers.map { measurer.measure(hour(it), labelStyle) }
         val gutter = yLabels.maxOf { it.size.width } + 12.dp.toPx()
         val chartTop = yLabels.first().size.height / 2f
         val chartBottom = size.height - xLabels.first().size.height - 8.dp.toPx()
@@ -366,26 +371,31 @@ private fun HourlyChart(counts: IntArray, modifier: Modifier) {
             drawText(label, topLeft = Offset(0f, y(value) - label.size.height / 2f))
             drawLine(gridColor, Offset(gutter, y(value)), Offset(size.width, y(value)), strokeWidth = 1.dp.toPx())
         }
-        xTicks.forEachIndexed { i, h ->
+        val dash = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 4.dp.toPx()))
+        markers.forEachIndexed { i, h ->
+            val x = plotLeft + slotOf(h) * slot
+            drawLine(gridColor, Offset(x, chartTop), Offset(x, chartBottom), strokeWidth = 1.dp.toPx(), pathEffect = dash)
             val label = xLabels[i]
-            val left = (plotLeft + h * slot).coerceIn(gutter, size.width - label.size.width)
+            val left = (x - label.size.width / 2f).coerceIn(gutter, size.width - label.size.width)
             drawText(label, topLeft = Offset(left, size.height - label.size.height))
         }
 
         val selected = touchX?.let { ((it - plotLeft) / slot).toInt().coerceIn(0, 23) }
-        counts.forEachIndexed { h, count ->
-            if (count == 0) return@forEachIndexed
-            val rect = Rect(plotLeft + h * slot + gap / 2, y(count), plotLeft + (h + 1) * slot - gap / 2, chartBottom)
+        for (i in 0 until 24) {
+            val count = counts[hourAt(i)]
+            if (count == 0) continue
+            val rect = Rect(plotLeft + i * slot + gap / 2, y(count), plotLeft + (i + 1) * slot - gap / 2, chartBottom)
             val radius = CornerRadius(minOf(4.dp.toPx(), rect.width / 2, rect.height))
             val path = Path().apply { addRoundRect(RoundRect(rect, topLeft = radius, topRight = radius)) }
-            drawPath(path, if (selected == null || selected == h) barColor else barColor.copy(alpha = 0.4f))
+            drawPath(path, if (selected == null || selected == i) barColor else barColor.copy(alpha = 0.4f))
         }
 
         selected ?: return@Canvas
+        val h = hourAt(selected)
         drawTooltip(
-            Offset(plotLeft + (selected + 0.5f) * slot, y(counts[selected])),
-            measurer.measure("${hour(selected)} – ${hour(selected + 1)}", tooltipTitleStyle),
-            measurer.measure("${numberFormat.format(counts[selected])} received", tooltipValueStyle),
+            Offset(plotLeft + (selected + 0.5f) * slot, y(counts[h])),
+            measurer.measure("${hour(h)} – ${hour(h + 1)}", tooltipTitleStyle),
+            measurer.measure("${numberFormat.format(counts[h])} received", tooltipValueStyle),
             barColor, tooltipColor, tooltipBorder,
         )
     }
