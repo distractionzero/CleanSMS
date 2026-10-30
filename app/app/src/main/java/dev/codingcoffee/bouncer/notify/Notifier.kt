@@ -15,6 +15,9 @@ import dev.codingcoffee.bouncer.MainActivity
 import dev.codingcoffee.bouncer.R
 import dev.codingcoffee.bouncer.data.contacts.ContactRepository
 import dev.codingcoffee.bouncer.data.db.BouncerDatabase
+import dev.codingcoffee.bouncer.data.db.Label
+import dev.codingcoffee.bouncer.data.db.MessageEntity
+import dev.codingcoffee.bouncer.data.prefs.SettingsStore
 import dev.codingcoffee.bouncer.receivers.NotificationActionReceiver
 
 /** Thread currently on screen; its incoming messages are not notified. */
@@ -27,6 +30,8 @@ class Notifier(
     private val context: Context,
     private val db: BouncerDatabase,
     private val contacts: ContactRepository,
+    private val settings: SettingsStore,
+    private val labelOf: suspend (MessageEntity) -> Label,
 ) {
     private val manager = NotificationManagerCompat.from(context)
 
@@ -40,6 +45,7 @@ class Notifier(
         if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
         val unread = db.messages().unreadInThread(threadId).takeLast(1)
         if (unread.isEmpty()) return cancel(threadId)
+        if (labelOf(unread.last()) in settings.mutedLabels.value) return
         val conversation = db.conversations().byId(threadId)
         val addresses = conversation?.addressList.orEmpty()
 

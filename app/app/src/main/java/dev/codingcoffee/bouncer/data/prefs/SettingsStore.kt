@@ -2,6 +2,7 @@ package dev.codingcoffee.bouncer.data.prefs
 
 import android.content.Context
 import androidx.core.content.edit
+import dev.codingcoffee.bouncer.data.db.Label
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +20,17 @@ class SettingsStore(context: Context) {
     fun setThemeMode(mode: ThemeMode) {
         prefs.edit { putString(KEY_THEME, mode.name) }
         _themeMode.value = mode
+    }
+
+    private val _mutedLabels = MutableStateFlow(
+        prefs.getStringSet(KEY_MUTED_LABELS, emptySet()).orEmpty().mapNotNull { name -> Label.entries.find { it.name == name } }.toSet()
+    )
+    val mutedLabels: StateFlow<Set<Label>> = _mutedLabels.asStateFlow()
+
+    fun setLabelMuted(label: Label, muted: Boolean) {
+        val updated = if (muted) _mutedLabels.value + label else _mutedLabels.value - label
+        prefs.edit { putStringSet(KEY_MUTED_LABELS, updated.map { it.name }.toSet()) }
+        _mutedLabels.value = updated
     }
 
     var initialSyncDone: Boolean
@@ -43,5 +55,6 @@ class SettingsStore(context: Context) {
         const val KEY_LAST_SMS = "last_sms_id"
         const val KEY_LAST_MMS = "last_mms_id"
         const val KEY_LABEL_MODEL = "label_model"
+        const val KEY_MUTED_LABELS = "muted_labels"
     }
 }

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Sms
@@ -40,6 +41,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -60,6 +62,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.codingcoffee.bouncer.BuildConfig
 import dev.codingcoffee.bouncer.container
 import dev.codingcoffee.bouncer.data.DebugSeeder
+import dev.codingcoffee.bouncer.data.db.Label
 import dev.codingcoffee.bouncer.data.db.MessageStats
 import dev.codingcoffee.bouncer.data.prefs.ThemeMode
 import kotlinx.coroutines.Dispatchers
@@ -79,6 +82,8 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
     val stats by statsFlow.collectAsStateWithLifecycle(MessageStats(0, 0, 0, 0))
     var confirmDeleteAll by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf(false) }
+    val mutedLabels by container.settings.mutedLabels.collectAsStateWithLifecycle()
+    var editingLabelNotifications by remember { mutableStateOf(false) }
     val labelChangesFlow = remember { container.db.labelChanges().observeCount() }
     val labelChanges by labelChangesFlow.collectAsStateWithLifecycle(0)
     var exportStatus by remember { mutableStateOf<String?>(null) }
@@ -146,6 +151,12 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
                         Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
                     )
                 }
+                SettingRow(
+                    Icons.Filled.NotificationsOff,
+                    "Notifications by label",
+                    if (mutedLabels.isEmpty()) "All labels notify"
+                    else "Muted: " + Label.entries.filter { it in mutedLabels }.joinToString { it.name },
+                ) { editingLabelNotifications = true }
                 SettingRow(Icons.Filled.Sms, "Default SMS app", "Active. Bouncer is your default SMS app.") {
                     context.startActivity(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
                 }
@@ -196,6 +207,31 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
             }
             Spacer(Modifier.height(16.dp))
         }
+    }
+
+    if (editingLabelNotifications) {
+        AlertDialog(
+            onDismissRequest = { editingLabelNotifications = false },
+            title = { Text("Notify for") },
+            text = {
+                Column {
+                    Label.entries.forEach { label ->
+                        val enabled = label !in mutedLabels
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { container.settings.setLabelMuted(label, enabled) }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(label.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                            Switch(checked = enabled, onCheckedChange = { container.settings.setLabelMuted(label, !it) })
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { editingLabelNotifications = false }) { Text("Done") } },
+        )
     }
 
     if (confirmDeleteAll) {

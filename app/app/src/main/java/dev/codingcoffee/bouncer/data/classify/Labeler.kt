@@ -69,6 +69,14 @@ class Labeler(
         _state.value = LabelState.Idle
     }
 
+    suspend fun labelOf(message: MessageEntity): Label {
+        message.label?.let { return it }
+        val label = db.labelChanges().overridesFor(listOf(message.id)).lastOrNull()?.toLabel
+            ?: labels[classifier.predict(message.body)]
+        db.messages().setLabel(message.id, label)
+        return label
+    }
+
     suspend fun setManually(messages: List<MessageEntity>, label: Label) {
         val now = System.currentTimeMillis()
         val changes = messages.filter { it.isIncoming && it.label != label }.map { message ->
