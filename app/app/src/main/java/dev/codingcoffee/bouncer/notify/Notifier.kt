@@ -67,7 +67,7 @@ class Notifier(
         }
         val sender = contacts.get(message.address.ifBlank { addresses.firstOrNull().orEmpty() })
         val text = message.body.ifBlank { if (message.hasAttachment) "Photo" else "Message" }
-        val name = label.takeIf { it != Label.Unknown }?.let { "${sender.displayName} · ${it.name}" } ?: sender.displayName
+        val name = label.takeIf { it != Label.Unknown }?.let { "${sender.displayName} · [${it.name}]" } ?: sender.displayName
         style.addMessage(text, message.date, Person.Builder().setName(name).setKey(sender.address).build())
 
         val requestCode = message.id.toInt()
