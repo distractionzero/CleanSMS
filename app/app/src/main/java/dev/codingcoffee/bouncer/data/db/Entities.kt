@@ -117,6 +117,7 @@ data class MessageStats(
 
 data class MessageText(
     val id: Long,
+    val address: String,
     val body: String,
 )
 

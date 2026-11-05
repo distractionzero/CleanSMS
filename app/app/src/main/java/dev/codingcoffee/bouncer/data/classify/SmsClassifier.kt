@@ -16,11 +16,6 @@ class SmsClassifier private constructor(
 ) {
     private val features = word.idf.size + char.idf.size
 
-    fun predict(text: String): Int {
-        val scores = scores(text)
-        return scores.indices.maxBy { scores[it] }
-    }
-
     fun scores(text: String): DoubleArray {
         val t = template(text)
         val scores = DoubleArray(labels.size) { intercept[it].toDouble() }

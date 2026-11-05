@@ -61,7 +61,7 @@ class Labeler(
             if (batch.isEmpty()) break
             if (showProgress) _state.value = LabelState.Sorting(done, total)
             val overrides = db.labelChanges().overridesFor(batch.map { it.id }).associate { it.messageId to it.toLabel }
-            val predicted = batch.map { it.id to (overrides[it.id] ?: labels[classifier.predict(it.body)]) }
+            val predicted = batch.map { it.id to (overrides[it.id] ?: predict(it.address, it.body)) }
             db.withTransaction { predicted.forEach { (id, label) -> dao.setLabel(id, label) } }
             done += batch.size
             total = done + dao.unlabelledCount()
@@ -72,9 +72,20 @@ class Labeler(
     suspend fun labelOf(message: MessageEntity): Label {
         message.label?.let { return it }
         val label = db.labelChanges().overridesFor(listOf(message.id)).lastOrNull()?.toLabel
-            ?: labels[classifier.predict(message.body)]
+            ?: predict(message.address, message.body)
         db.messages().setLabel(message.id, label)
         return label
+    }
+
+    /** Drops every label so all received messages are sorted again; manual changes are reapplied. */
+    fun relabelAll() = scope.launch { db.messages().clearLabels() }
+
+    private fun predict(address: String, body: String): Label {
+        val fromNumber = PHONE_NUMBER.matches(address)
+        if (body.isBlank()) return if (fromNumber) Label.Personal else Label.Promotional
+        val scores = classifier.scores(body)
+        val candidates = scores.indices.filter { fromNumber || labels[it] != Label.Personal }
+        return labels[candidates.maxBy { scores[it] }]
     }
 
     suspend fun setManually(messages: List<MessageEntity>, label: Label) {
@@ -141,5 +152,6 @@ class Labeler(
     private companion object {
         const val BATCH = 500
         const val SHOW_PROGRESS_FROM = 50
+        val PHONE_NUMBER = Regex("""\+?[0-9 ()./-]+""")
     }
 }

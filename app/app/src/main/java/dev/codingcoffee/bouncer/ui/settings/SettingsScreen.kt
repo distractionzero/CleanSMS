@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Policy
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AlertDialog
@@ -63,6 +64,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.codingcoffee.bouncer.BuildConfig
 import dev.codingcoffee.bouncer.container
 import dev.codingcoffee.bouncer.data.DebugSeeder
+import dev.codingcoffee.bouncer.data.classify.LabelState
 import dev.codingcoffee.bouncer.data.db.Label
 import dev.codingcoffee.bouncer.data.db.MessageStats
 import dev.codingcoffee.bouncer.data.prefs.ThemeMode
@@ -88,6 +90,7 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
     val labelChangesFlow = remember { container.db.labelChanges().observeCount() }
     val labelChanges by labelChangesFlow.collectAsStateWithLifecycle(0)
     var exportStatus by remember { mutableStateOf<String?>(null) }
+    val labelState by container.labeler.state.collectAsStateWithLifecycle()
     val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         exportStatus = "Exporting…"
@@ -172,6 +175,14 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
 
             SectionHeader("Data")
             SettingsCard {
+                SettingRow(
+                    Icons.Filled.Refresh,
+                    "Relabel all messages",
+                    (labelState as? LabelState.Sorting)?.let { "Sorting… ${it.done} of ${it.total}" } ?: "Sort every message again",
+                    chevron = false,
+                ) {
+                    if (labelState is LabelState.Idle) container.labeler.relabelAll()
+                }
                 SettingRow(
                     Icons.Filled.FileDownload,
                     "Export label changes",
