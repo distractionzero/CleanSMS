@@ -164,7 +164,7 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
                     if (mutedLabels.isEmpty()) "All labels notify"
                     else "Muted: " + Label.entries.filter { it in mutedLabels }.joinToString { it.name },
                 ) { editingLabelNotifications = true }
-                SettingRow(Icons.Filled.Sms, "Default SMS app", "Active. Bouncer is your default SMS app.") {
+                SettingRow(Icons.Filled.Sms, "Default SMS app", "Active. Clean SMS is your default SMS app.") {
                     context.startActivity(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
                 }
             }
@@ -185,7 +185,7 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
                     exportStatus ?: "$labelChanges manual label changes",
                     chevron = false,
                 ) {
-                    if (labelChanges > 0) exporter.launch("bouncer-label-changes-${LocalDate.now()}.json")
+                    if (labelChanges > 0) exporter.launch("clean-sms-label-changes-${LocalDate.now()}.json")
                 }
                 SettingRow(
                     Icons.Filled.DeleteForever,

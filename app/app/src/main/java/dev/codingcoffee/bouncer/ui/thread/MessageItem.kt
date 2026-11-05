@@ -199,7 +199,7 @@ private fun Translation(message: MessageEntity, translations: Translations) {
         AlertDialog(
             onDismissRequest = { offerDownload = false },
             title = { Text("Download $languageName?") },
-            text = { Text("To translate $languageName in Bouncer, download it for offline translation in system settings. Or open this message in your translate app.") },
+            text = { Text("To translate $languageName in Clean SMS, download it for offline translation in system settings. Or open this message in your translate app.") },
             confirmButton = {
                 TextButton(onClick = {
                     offerDownload = false

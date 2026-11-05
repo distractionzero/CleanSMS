@@ -38,10 +38,10 @@ fun OnboardingScreen(onGranted: () -> Unit) {
     ) {
         Icon(Icons.Outlined.Sms, null, Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(24.dp))
-        Text("Welcome to Bouncer", style = MaterialTheme.typography.headlineMedium)
+        Text("Welcome to Clean SMS", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(12.dp))
         Text(
-            "Set Bouncer as your default SMS app to read, send and receive messages.",
+            "Set Clean SMS as your default SMS app to read, send and receive messages.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

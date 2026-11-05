@@ -23,22 +23,22 @@ import androidx.compose.ui.unit.dp
 
 private val sections = listOf(
     "Everything stays on this device" to
-        "Bouncer has no internet permission. It cannot send your messages, contacts or any other data to us or to anyone else. " +
+        "Clean SMS has no internet permission. It cannot send your messages, contacts or any other data to us or to anyone else. " +
         "There are no accounts, ads, analytics or crash reporting.",
-    "What Bouncer reads" to
+    "What Clean SMS reads" to
         "SMS and MMS messages, so it can show, send and receive them as your default SMS app. " +
         "Contacts, to show names and photos next to phone numbers. " +
         "Phone state, to find your own numbers and the SIM a message used.",
-    "What Bouncer stores" to
+    "What Clean SMS stores" to
         "A copy of your messages is kept in a private database inside the app so the inbox and search are fast. " +
-        "Your settings, such as the theme, are stored alongside it. Only Bouncer can read this data.",
+        "Your settings, such as the theme, are stored alongside it. Only Clean SMS can read this data.",
     "Sending messages" to
         "Messages you send go through your mobile carrier, just like any other SMS app. Your carrier's own privacy policy applies to them.",
     "Backups" to
-        "If Android backup is turned on for your device, the system may include Bouncer's data in your device backup. " +
+        "If Android backup is turned on for your device, the system may include Clean SMS data in your device backup. " +
         "You control this in your phone's backup settings.",
     "Deleting your data" to
-        "You can delete conversations, single messages or everything from Settings. Uninstalling Bouncer removes its private database. " +
+        "You can delete conversations, single messages or everything from Settings. Uninstalling Clean SMS removes its private database. " +
         "Messages in Android's shared SMS storage stay there until you delete them.",
 )
 

@@ -130,7 +130,7 @@ fun ConversationsScreen(
                 )
             } else {
                 TopAppBar(
-                    title = { Text(if (archived) "Archived" else "Bouncer") },
+                    title = { Text(if (archived) "Archived" else "Clean SMS") },
                     navigationIcon = {
                         if (archived) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
                     },
