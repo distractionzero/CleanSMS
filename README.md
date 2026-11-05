@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/icon.svg" alt="Bouncer icon" width="96" height="96">
+  <img src="docs/icon.svg" alt="Clean SMS icon" width="96" height="96">
 </p>
 
-<h1 align="center">Bouncer</h1>
+<h1 align="center">Clean SMS</h1>
 
 <p align="center">A clean, fast SMS and MMS app for Android. Free, open source and fully offline.</p>
 
@@ -13,10 +13,10 @@
   <a href="#release-build">Release build</a>
 </p>
 
-A messaging app for Android that looks and feels like Google Messages. Bouncer replaces your SMS app: it holds the
+A messaging app for Android that looks and feels like Google Messages. Clean SMS replaces your SMS app: it holds the
 default SMS role (`ROLE_SMS`), so it receives, sends and stores every SMS and MMS on the device.
 
-On first launch Bouncer imports the system SMS/MMS store into its own Room database. After that, a content
+On first launch Clean SMS imports the system SMS/MMS store into its own Room database. After that, a content
 observer brings in new messages as they arrive. All UI reads from that local copy through Paging 3, so lists with
 50,000+ messages scroll smoothly.
 
@@ -30,8 +30,8 @@ observer brings in new messages as they arrive. All UI reads from that local cop
 ## Layout
 
 ```
-app/app/src/main/java/dev/codingcoffee/bouncer/
-  BouncerApp.kt                 # Application + AppContainer (manual DI)
+app/app/src/main/java/dev/codingcoffee/cleansms/
+  CleanSmsApp.kt                # Application + AppContainer (manual DI)
   MainActivity.kt               # entry point, SENDTO / notification intents
   HeadlessSmsSendService.kt     # "respond via message" from the call screen
   data/db/                      # Room entities, DAOs, FTS table
@@ -64,7 +64,7 @@ emulator -avd pixel37
 
 adb devices # ensure device is running
 cd app && ./gradlew installDebug
-adb shell am start -n dev.codingcoffee.bouncer/.MainActivity
+adb shell am start -n dev.codingcoffee.cleansms/.MainActivity
 
 # in case its not killed
 adb emu kill
@@ -76,7 +76,7 @@ avdmanager delete avd -n <name>
 To type with your computer's keyboard, set `hw.keyboard = yes` in `~/.android/avd/<name>.avd/config.ini` and
 restart the emulator.
 
-Open the app and set Bouncer as the default SMS app. Then simulate incoming messages:
+Open the app and set Clean SMS as the default SMS app. Then simulate incoming messages:
 
 ```sh
 adb emu sms send 5551234 "hello"                 # new conversation
@@ -94,14 +94,14 @@ adb shell content call --method scan_volume --uri content://media --arg external
 ```
 
 To check scrolling performance, open Settings → Debug → **Seed 50,000 test messages**. This writes only to
-Bouncer's local database, not to the system SMS store; **Remove test messages** clears it. Judge smoothness on a
+Clean SMS's local database, not to the system SMS store; **Remove test messages** clears it. Judge smoothness on a
 release build: debug Compose builds are much slower.
 
 To pull the local database from a debug build:
 
 ```sh
-adb exec-out run-as dev.codingcoffee.bouncer cat databases/bouncer.db > bouncer.db
-adb exec-out run-as dev.codingcoffee.bouncer cat databases/bouncer.db-wal > bouncer.db-wal
+adb exec-out run-as dev.codingcoffee.cleansms cat databases/cleansms.db > cleansms.db
+adb exec-out run-as dev.codingcoffee.cleansms cat databases/cleansms.db-wal > cleansms.db-wal
 ```
 
 ## Release build
@@ -109,21 +109,21 @@ adb exec-out run-as dev.codingcoffee.bouncer cat databases/bouncer.db-wal > boun
 ### Signing key (once)
 
 ```sh
-keytool -genkeypair -v -keystore ~/.android/bouncer-release.jks \
-  -alias bouncer -keyalg RSA -keysize 4096 -validity 10000
+keytool -genkeypair -v -keystore ~/.android/cleansms-release.jks \
+  -alias cleansms -keyalg RSA -keysize 4096 -validity 10000
 ```
 
 Back up the keystore. Updates must be signed with the same key; losing it means uninstalling, which wipes
-Bouncer's local database (your messages stay in the system SMS store and are re-imported).
+Clean SMS's local database (your messages stay in the system SMS store and are re-imported).
 
 Add the credentials to `~/.gradle/gradle.properties` (user-level, never the repo), then
 `chmod 600 ~/.gradle/gradle.properties`:
 
 ```properties
-BOUNCER_STORE_FILE=/home/<you>/.android/bouncer-release.jks
-BOUNCER_STORE_PASSWORD=<password>
-BOUNCER_KEY_ALIAS=bouncer
-BOUNCER_KEY_PASSWORD=<password>
+CLEANSMS_STORE_FILE=/home/<you>/.android/cleansms-release.jks
+CLEANSMS_STORE_PASSWORD=<password>
+CLEANSMS_KEY_ALIAS=cleansms
+CLEANSMS_KEY_PASSWORD=<password>
 ```
 
 Use an absolute path; Gradle doesn't expand `~`. Without these properties the release APK is built unsigned.
@@ -150,7 +150,7 @@ just release patch   # or minor / major
 ```
 
 This bumps `versionName` and `versionCode`, builds the signed APK, commits and tags `vX.Y.Z`, pushes both,
-and creates a GitHub release with generated notes and `bouncer-vX.Y.Z.apk` attached.
+and creates a GitHub release with generated notes and `cleansms-vX.Y.Z.apk` attached.
 
 ### Install and run on the emulator
 
@@ -158,9 +158,9 @@ Debug and release builds are signed with different keys, so uninstall the debug 
 app's data.
 
 ```sh
-adb uninstall dev.codingcoffee.bouncer
+adb uninstall dev.codingcoffee.cleansms
 adb install -r app/build/outputs/apk/release/app-release.apk
-adb shell am start -n dev.codingcoffee.bouncer/.MainActivity
+adb shell am start -n dev.codingcoffee.cleansms/.MainActivity
 ```
 
 Later release builds install over the previous one with `adb install -r`, keeping data.
@@ -168,16 +168,16 @@ Later release builds install over the previous one with `adb install -r`, keepin
 ### Install on a phone
 
 With USB debugging on: `adb install -r app/build/outputs/apk/release/app-release.apk`. Or copy the APK to the
-phone and open it, allowing "Install unknown apps" when asked. If setting Bouncer as the default SMS app is
-blocked as a restricted setting, go to Settings → Apps → Bouncer → ⋮ → Allow restricted settings.
+phone and open it, allowing "Install unknown apps" when asked. If setting Clean SMS as the default SMS app is
+blocked as a restricted setting, go to Settings → Apps → Clean SMS → ⋮ → Allow restricted settings.
 
-Switching back to Google Messages later is safe: messages live in the system SMS store, not only in Bouncer.
+Switching back to Google Messages later is safe: messages live in the system SMS store, not only in Clean SMS.
 
 ### Debugging a release crash
 
 ```sh
 adb logcat -c
-adb shell am start -n dev.codingcoffee.bouncer/.MainActivity
+adb shell am start -n dev.codingcoffee.cleansms/.MainActivity
 adb logcat -d -b crash
 ```
 

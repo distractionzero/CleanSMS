@@ -8,7 +8,7 @@ plugins {
     alias(libs.plugins.aboutlibraries)
 }
 
-val releaseStoreFile = providers.gradleProperty("BOUNCER_STORE_FILE").orNull
+val releaseStoreFile = providers.gradleProperty("CLEANSMS_STORE_FILE").orNull
 
 val smsModelVersion = "v0.0.1"
 val smsModelSha256 = "de12226aa830b67a556d4b829dfb272ef3ef5ef6937ae82f4620c3851153e8ef"
@@ -37,13 +37,13 @@ val downloadSmsModel = tasks.register<DownloadSmsModel>("downloadSmsModel") {
 }
 
 android {
-    namespace = "dev.codingcoffee.bouncer"
+    namespace = "dev.codingcoffee.cleansms"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "dev.codingcoffee.bouncer"
+        applicationId = "dev.codingcoffee.cleansms"
         minSdk = 29
         targetSdk = 37
         versionCode = 3
@@ -57,9 +57,9 @@ android {
         if (releaseStoreFile != null) {
             create("release") {
                 storeFile = file(releaseStoreFile)
-                storePassword = providers.gradleProperty("BOUNCER_STORE_PASSWORD").get()
-                keyAlias = providers.gradleProperty("BOUNCER_KEY_ALIAS").get()
-                keyPassword = providers.gradleProperty("BOUNCER_KEY_PASSWORD").get()
+                storePassword = providers.gradleProperty("CLEANSMS_STORE_PASSWORD").get()
+                keyAlias = providers.gradleProperty("CLEANSMS_KEY_ALIAS").get()
+                keyPassword = providers.gradleProperty("CLEANSMS_KEY_PASSWORD").get()
             }
         }
     }

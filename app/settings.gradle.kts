@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "bouncer"
+rootProject.name = "cleansms"
 include(":app")

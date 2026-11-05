@@ -36,7 +36,7 @@ release bump:
     (cd app && ./gradlew assembleRelease)
     trap - ERR
     if [[ ! -f {{ apk }} ]]; then
-        echo "signed APK not found; check the BOUNCER_* Gradle properties" >&2
+        echo "signed APK not found; check the CLEANSMS_* Gradle properties" >&2
         git checkout -- {{ gradle_file }}
         exit 1
     fi
@@ -49,5 +49,5 @@ release bump:
         | api -X POST -H "Accept: application/vnd.github+json" --data @- "https://api.github.com/repos/$repo/releases" \
         | jq -r .upload_url)
     api -X POST -H "Content-Type: application/vnd.android.package-archive" --data-binary @{{ apk }} \
-        "${upload_url%\{*}?name=bouncer-$tag.apk" >/dev/null
+        "${upload_url%\{*}?name=cleansms-$tag.apk" >/dev/null
     echo "released $tag (versionCode $code): https://github.com/$repo/releases/tag/$tag"
