@@ -92,6 +92,7 @@ import dev.codingcoffee.bouncer.data.db.Label
 import dev.codingcoffee.bouncer.data.db.MessageEntity
 import dev.codingcoffee.bouncer.notify.ActiveThread
 import dev.codingcoffee.bouncer.ui.components.Avatar
+import dev.codingcoffee.bouncer.ui.components.ConfirmLinks
 import dev.codingcoffee.bouncer.ui.components.rememberContacts
 import dev.codingcoffee.bouncer.ui.components.title
 import dev.codingcoffee.bouncer.util.TimeFormat
@@ -283,39 +284,41 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
             )
         },
     ) { padding ->
-        LazyColumn(
-            state = listState,
-            reverseLayout = true,
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(vertical = 8.dp),
-        ) {
-            items(
-                count = messages.itemCount,
-                key = messages.itemKey { it.id },
-                contentType = messages.itemContentType { if (it.isIncoming) 0 else 1 },
-            ) { index ->
-                val message = messages[index]
-                if (message == null) {
-                    Spacer(Modifier.height(56.dp))
-                } else {
-                    val older = if (index + 1 < messages.itemCount) messages.peek(index + 1) else null
-                    val newer = if (index > 0) messages.peek(index - 1) else null
-                    val layout = remember(message, older, newer) { layoutFor(message, older, newer, index + 1 >= messages.itemCount) }
-                    MessageItem(
-                        message = message,
-                        layout = layout,
-                        sender = if (message.isIncoming) senderFor(message, contactsByKey, contacts) else null,
-                        isGroup = isGroup,
-                        selected = message.id in selected,
-                        loadParts = loadParts,
-                        translations = translations,
-                        onRetry = retry,
-                        onClick = {
-                            if (selecting) selected = selected.toggle(message.id)
-                            else if (message.box == MessageBox.FAILED) retry(message)
-                        },
-                        onLongClick = { selected = selected.toggle(message.id) },
-                    )
+        ConfirmLinks {
+            LazyColumn(
+                state = listState,
+                reverseLayout = true,
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentPadding = PaddingValues(vertical = 8.dp),
+            ) {
+                items(
+                    count = messages.itemCount,
+                    key = messages.itemKey { it.id },
+                    contentType = messages.itemContentType { if (it.isIncoming) 0 else 1 },
+                ) { index ->
+                    val message = messages[index]
+                    if (message == null) {
+                        Spacer(Modifier.height(56.dp))
+                    } else {
+                        val older = if (index + 1 < messages.itemCount) messages.peek(index + 1) else null
+                        val newer = if (index > 0) messages.peek(index - 1) else null
+                        val layout = remember(message, older, newer) { layoutFor(message, older, newer, index + 1 >= messages.itemCount) }
+                        MessageItem(
+                            message = message,
+                            layout = layout,
+                            sender = if (message.isIncoming) senderFor(message, contactsByKey, contacts) else null,
+                            isGroup = isGroup,
+                            selected = message.id in selected,
+                            loadParts = loadParts,
+                            translations = translations,
+                            onRetry = retry,
+                            onClick = {
+                                if (selecting) selected = selected.toggle(message.id)
+                                else if (message.box == MessageBox.FAILED) retry(message)
+                            },
+                            onLongClick = { selected = selected.toggle(message.id) },
+                        )
+                    }
                 }
             }
         }
