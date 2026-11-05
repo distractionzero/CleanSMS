@@ -29,6 +29,9 @@ release bump:
     tag="v$version"
     code=$((code + 1))
     git rev-parse -q --verify "refs/tags/$tag" >/dev/null && { echo "tag $tag already exists" >&2; exit 1; }
+    prev=$(git describe --tags --abbrev=0 2>/dev/null || true)
+    notes=$(git log --no-merges --pretty='- %s (%h)' ${prev:+"$prev..HEAD"})
+    [[ -n "$prev" ]] && notes+=$'\n\n'"**Full Changelog**: https://github.com/$repo/compare/$prev...$tag"
 
     trap 'git checkout -- {{ gradle_file }}' ERR
     sed -i -E "s/^( *versionName = )\".*\"/\1\"$version\"/; s/^( *versionCode = )[0-9]+/\1$code/" {{ gradle_file }}
@@ -45,7 +48,7 @@ release bump:
     git tag -a "$tag" -m "$tag"
     git push --atomic origin main "$tag"
 
-    upload_url=$(jq -n --arg tag "$tag" '{tag_name: $tag, name: $tag, generate_release_notes: true}' \
+    upload_url=$(jq -n --arg tag "$tag" --arg body "$notes" '{tag_name: $tag, name: $tag, body: $body}' \
         | api -X POST -H "Accept: application/vnd.github+json" --data @- "https://api.github.com/repos/$repo/releases" \
         | jq -r .upload_url)
     api -X POST -H "Content-Type: application/vnd.android.package-archive" --data-binary @{{ apk }} \
