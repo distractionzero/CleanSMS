@@ -9,6 +9,7 @@ import dev.codingcoffee.bouncer.data.db.BouncerDatabase
 import dev.codingcoffee.bouncer.data.mms.MmsService
 import dev.codingcoffee.bouncer.data.prefs.SettingsStore
 import dev.codingcoffee.bouncer.data.sync.TelephonySync
+import dev.codingcoffee.bouncer.data.translate.Translations
 import dev.codingcoffee.bouncer.notify.Notifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +39,7 @@ class AppContainer(context: Context) {
     val mms = MmsService(context, db, sync)
     val messaging = Messaging(context, db, sync, mms, notifier)
     val labeler: Labeler = Labeler(context, db, settings, contacts, messaging, scope)
+    val translations = Translations(context)
 }
 
 val Context.container: AppContainer get() = (applicationContext as BouncerApp).container

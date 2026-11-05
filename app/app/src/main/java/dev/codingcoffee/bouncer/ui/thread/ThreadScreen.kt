@@ -155,6 +155,7 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
     }
     val loadParts = remember(vm) { vm::parts }
     val retry = remember(vm) { vm::retry }
+    val translations = container.translations
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) attachment = uri
@@ -292,6 +293,7 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
                         isGroup = isGroup,
                         selected = message.id in selected,
                         loadParts = loadParts,
+                        translations = translations,
                         onRetry = retry,
                         onClick = {
                             if (selecting) selected = selected.toggle(message.id)

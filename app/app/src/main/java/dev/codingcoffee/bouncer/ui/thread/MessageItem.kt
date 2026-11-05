@@ -1,6 +1,7 @@
 package dev.codingcoffee.bouncer.ui.thread
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,13 +20,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,10 +45,14 @@ import dev.codingcoffee.bouncer.data.contacts.Contact
 import dev.codingcoffee.bouncer.data.db.Box as MessageBox
 import dev.codingcoffee.bouncer.data.db.MessageEntity
 import dev.codingcoffee.bouncer.data.db.MmsPartEntity
+import dev.codingcoffee.bouncer.data.translate.OnDeviceTranslation
+import dev.codingcoffee.bouncer.data.translate.Translations
 import dev.codingcoffee.bouncer.ui.components.Avatar
 import dev.codingcoffee.bouncer.ui.components.linkify
 import dev.codingcoffee.bouncer.util.TimeFormat
 import dev.codingcoffee.bouncer.util.rememberImage
+import kotlinx.coroutines.launch
+import java.util.Locale
 
 @Immutable
 data class MessageLayout(
@@ -63,6 +73,7 @@ fun MessageItem(
     isGroup: Boolean,
     selected: Boolean,
     loadParts: suspend (Long) -> List<MmsPartEntity>,
+    translations: Translations,
     onRetry: (MessageEntity) -> Unit,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -130,6 +141,7 @@ fun MessageItem(
                             style = MaterialTheme.typography.bodyLarge,
                             color = if (incoming) colors.onSurface else colors.onPrimaryContainer,
                         )
+                        if (incoming) Translation(message, translations)
                     }
                 }
             }
@@ -137,6 +149,70 @@ fun MessageItem(
                 Status(message, !layout.joinsNewer, selected, Modifier.align(if (incoming) Alignment.Start else Alignment.End), onRetry)
             }
         }
+    }
+}
+
+@Composable
+private fun Translation(message: MessageEntity, translations: Translations) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val language by produceState<String?>(null, message.id) { value = translations.foreignLanguage(message) }
+    var translation by remember(message.id) { mutableStateOf<String?>(null) }
+    var offerDownload by remember(message.id) { mutableStateOf(false) }
+    val from = language ?: return
+
+    fun openTranslateApp() {
+        if (!translations.openTranslateApp(context, message.body)) {
+            Toast.makeText(context, "No translate app installed", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    translation?.let {
+        Text(
+            it,
+            modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 6.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    Text(
+        if (translation == null) "Translate" else "Hide translation",
+        modifier = Modifier
+            .clip(RoundedCornerShape(SMALL))
+            .clickable {
+                if (translation != null) translation = null
+                else scope.launch {
+                    when (val result = translations.translateOnDevice(message.body, from)) {
+                        is OnDeviceTranslation.Translated -> translation = result.text
+                        OnDeviceTranslation.NeedsDownload -> offerDownload = true
+                        OnDeviceTranslation.Unavailable -> openTranslateApp()
+                    }
+                }
+            }
+            .padding(horizontal = 14.dp, vertical = 4.dp),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.primary,
+    )
+
+    if (offerDownload) {
+        val languageName = remember(from) { Locale.forLanguageTag(from).displayLanguage }
+        AlertDialog(
+            onDismissRequest = { offerDownload = false },
+            title = { Text("Download $languageName?") },
+            text = { Text("To translate $languageName in Bouncer, download it for offline translation in system settings. Or open this message in your translate app.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    offerDownload = false
+                    if (!translations.openLanguageDownloads(context)) openTranslateApp()
+                }) { Text("Download") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    offerDownload = false
+                    openTranslateApp()
+                }) { Text("Translate app") }
+            },
+        )
     }
 }
 
