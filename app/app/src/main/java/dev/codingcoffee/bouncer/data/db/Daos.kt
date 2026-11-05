@@ -102,18 +102,18 @@ interface MessageDao {
     @Query(
         """
         SELECT date(date / 1000, 'unixepoch', 'localtime') AS day, COUNT(*) AS count
-        FROM messages WHERE box = 1 AND date >= :since GROUP BY day ORDER BY day
+        FROM messages WHERE box = 1 AND date >= :since AND (:anyLabel OR label IN (:labels)) GROUP BY day ORDER BY day
         """
     )
-    fun receivedPerDay(since: Long): Flow<List<DailyCount>>
+    fun receivedPerDay(since: Long, labels: Set<Label>, anyLabel: Boolean): Flow<List<DailyCount>>
 
     @Query(
         """
         SELECT CAST(strftime('%H', date / 1000, 'unixepoch', 'localtime') AS INTEGER) AS hour, COUNT(*) AS count
-        FROM messages WHERE box = 1 AND date >= :since AND (:label IS NULL OR label = :label) GROUP BY hour
+        FROM messages WHERE box = 1 AND date >= :since AND (:anyLabel OR label IN (:labels)) GROUP BY hour
         """
     )
-    fun receivedPerHour(since: Long, label: Label?): Flow<List<HourlyCount>>
+    fun receivedPerHour(since: Long, labels: Set<Label>, anyLabel: Boolean): Flow<List<HourlyCount>>
 
     @Query("SELECT label, COUNT(*) AS count FROM messages WHERE box = 1 AND date >= :since AND label IS NOT NULL GROUP BY label")
     fun receivedPerLabel(since: Long): Flow<List<LabelCount>>

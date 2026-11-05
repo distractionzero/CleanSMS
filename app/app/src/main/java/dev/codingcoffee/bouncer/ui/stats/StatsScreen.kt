@@ -156,24 +156,26 @@ private fun ChartCard(content: @Composable () -> Unit) {
 @Composable
 private fun ReceivedPerDay(range: Range, since: Long, today: LocalDate) {
     val container = LocalContext.current.container
-    val dailyFlow = remember(since) { container.db.messages().receivedPerDay(since) }
+    var labels by rememberSaveable { mutableStateOf(emptySet<Label>()) }
+    val dailyFlow = remember(since, labels) { container.db.messages().receivedPerDay(since, labels, labels.isEmpty()) }
     val daily by dailyFlow.collectAsStateWithLifecycle(emptyList())
     val points = remember(daily, range) { fillDays(daily, range, today) }
 
     ChartTitle("Received per day")
+    LabelFilter(selected = labels, onToggle = { labels = labels.toggle(it) }, contentPadding = PaddingValues(0.dp))
     ChartCard { DailyChart(points, Modifier.fillMaxWidth().height(180.dp)) }
 }
 
 @Composable
 private fun ReceivedPerHour(since: Long) {
     val container = LocalContext.current.container
-    var label by rememberSaveable { mutableStateOf<Label?>(null) }
-    val hourlyFlow = remember(since, label) { container.db.messages().receivedPerHour(since, label) }
+    var labels by rememberSaveable { mutableStateOf(emptySet<Label>()) }
+    val hourlyFlow = remember(since, labels) { container.db.messages().receivedPerHour(since, labels, labels.isEmpty()) }
     val hourly by hourlyFlow.collectAsStateWithLifecycle(emptyList())
     val counts = remember(hourly) { IntArray(24).also { array -> hourly.forEach { array[it.hour] = it.count } } }
 
     ChartTitle("Received by time of day")
-    LabelFilter(selected = setOfNotNull(label), onToggle = { label = if (label == it) null else it }, contentPadding = PaddingValues(0.dp))
+    LabelFilter(selected = labels, onToggle = { labels = labels.toggle(it) }, contentPadding = PaddingValues(0.dp))
     ChartCard { HourlyChart(counts, Modifier.fillMaxWidth().height(180.dp)) }
 }
 
@@ -227,6 +229,8 @@ private fun ReceivedPerLabel(since: Long) {
         }
     }
 }
+
+private fun Set<Label>.toggle(label: Label): Set<Label> = if (label in this) this - label else this + label
 
 private fun percent(count: Int, total: Int): String {
     val value = count * 100.0 / total
