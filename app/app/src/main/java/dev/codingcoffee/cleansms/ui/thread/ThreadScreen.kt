@@ -62,6 +62,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -87,6 +88,7 @@ import dev.codingcoffee.cleansms.container
 import dev.codingcoffee.cleansms.data.MessageDetails
 import dev.codingcoffee.cleansms.data.contacts.Contact
 import dev.codingcoffee.cleansms.data.contacts.ContactRepository
+import dev.codingcoffee.cleansms.data.contacts.SenderEntity
 import dev.codingcoffee.cleansms.data.db.Box as MessageBox
 import dev.codingcoffee.cleansms.data.db.Label
 import dev.codingcoffee.cleansms.data.db.MessageEntity
@@ -105,7 +107,14 @@ private const val GROUP_WINDOW_MS = 2 * 60 * 1000L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, onBack: () -> Unit, onForward: (String) -> Unit) {
+fun ThreadScreen(
+    threadId: Long,
+    focusMessageId: Long?,
+    initialDraft: String,
+    onBack: () -> Unit,
+    onForward: (String) -> Unit,
+    onSenderDetails: (String) -> Unit,
+) {
     val context = LocalContext.current
     val container = context.container
     val vm: ThreadViewModel = viewModel(key = "thread-$threadId") { ThreadViewModel(container, threadId) }
@@ -114,6 +123,9 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
     val addresses by vm.addresses.collectAsStateWithLifecycle()
     val contacts = rememberContacts(addresses)
     val contactsByKey = remember(contacts) { contacts.associateBy { ContactRepository.key(it.address) } }
+    val entity by produceState<SenderEntity?>(null, contacts) {
+        value = contacts.singleOrNull()?.takeIf { it.name == null }?.let { container.senders.entityOf(it.address) }
+    }
     val isGroup = addresses.size > 1
     val canReply = addresses.all(::isPhoneNumber)
     val listState = rememberLazyListState()
@@ -218,12 +230,16 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
                         IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
                     },
                     title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        val sender = contacts.singleOrNull()?.address
+                        Row(
+                            Modifier.clickable(enabled = entity != null && sender != null) { sender?.let(onSenderDetails) },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             Avatar(contacts, size = 36.dp)
                             Spacer(Modifier.width(12.dp))
                             Column {
-                                Text(contacts.title(), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
-                                val subtitle = contacts.singleOrNull()?.takeIf { it.name != null }?.address
+                                Text(entity?.name ?: contacts.title(), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
+                                val subtitle = contacts.singleOrNull()?.takeIf { it.name != null || entity != null }?.address
                                     ?: if (isGroup) "${addresses.size} people" else null
                                 subtitle?.let {
                                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -404,7 +420,7 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
 }
 
 @Composable
-private fun DetailRow(label: String, value: String) {
+internal fun DetailRow(label: String, value: String) {
     Column {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.bodyLarge)

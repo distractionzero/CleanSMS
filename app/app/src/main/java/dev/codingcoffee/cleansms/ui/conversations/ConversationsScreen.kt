@@ -285,7 +285,7 @@ private fun ConversationRow(
     val contacts = rememberContacts(addresses)
     val senders = context.container.senders
     val entity by produceState<String?>(null, contacts) {
-        value = contacts.singleOrNull()?.takeIf { it.name == null }?.let { senders.entityOf(it.address) }
+        value = contacts.singleOrNull()?.takeIf { it.name == null }?.let { senders.entityOf(it.address)?.name }
     }
     val unread = conversation.unreadCount > 0
     val time = remember(conversation.date) { TimeFormat.conversation(context, conversation.date) }

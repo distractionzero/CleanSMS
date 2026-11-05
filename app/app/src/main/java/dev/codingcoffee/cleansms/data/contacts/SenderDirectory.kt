@@ -5,7 +5,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 
-/** Maps DLT sender headers (e.g. KOTAKB in AD-KOTAKB-S) to the registered entity name. */
+data class SenderEntity(val header: String, val name: String, val address: String?)
+
+/** Maps DLT sender headers (e.g. KOTAKB in AD-KOTAKB-S) to the registered entity. */
 class SenderDirectory(private val context: Context) {
     private val entities by lazy {
         val json = context.assets.open(ASSET).bufferedReader().use { it.readText() }
@@ -15,14 +17,18 @@ class SenderDirectory(private val context: Context) {
                 val results = entries.getJSONObject(i).optJSONArray("results") ?: continue
                 for (j in 0 until results.length()) {
                     val result = results.getJSONObject(j)
-                    val name = result.optString("principal_entity_and_address").substringBefore(',').trim()
-                    if (name.isNotEmpty()) put(result.getString("header").uppercase(), name)
+                    val header = result.getString("header").uppercase()
+                    val details = result.optString("principal_entity_and_address")
+                    val name = details.substringBefore(',').trim()
+                    if (name.isEmpty()) continue
+                    val address = details.substringAfter(',', "").trim().trimEnd('.').ifEmpty { null }
+                    put(header, SenderEntity(header, name, address))
                 }
             }
         }
     }
 
-    suspend fun entityOf(address: String): String? {
+    suspend fun entityOf(address: String): SenderEntity? {
         val parts = address.trim().uppercase().split('-')
         val header = if (parts.size >= 2) parts[1] else parts[0]
         if (header.isEmpty() || header.any { !it.isLetterOrDigit() }) return null

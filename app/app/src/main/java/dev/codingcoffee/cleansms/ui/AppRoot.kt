@@ -42,6 +42,7 @@ import dev.codingcoffee.cleansms.ui.newchat.NewChatScreen
 import dev.codingcoffee.cleansms.ui.onboarding.OnboardingScreen
 import dev.codingcoffee.cleansms.ui.search.SearchScreen
 import dev.codingcoffee.cleansms.ui.theme.CleanSmsTheme
+import dev.codingcoffee.cleansms.ui.thread.SenderScreen
 import dev.codingcoffee.cleansms.ui.thread.ThreadScreen
 import kotlinx.coroutines.flow.Flow
 
@@ -53,11 +54,14 @@ object Routes {
     const val PRIVACY_POLICY = "privacy"
     const val LICENSES = "licenses"
     const val THREAD = "thread/{threadId}?focus={focus}&draft={draft}"
+    const val SENDER = "sender/{address}"
 
     fun thread(threadId: Long, focus: Long? = null, draft: String? = null): String =
         "thread/$threadId?focus=${focus ?: Long.MIN_VALUE}&draft=${Uri.encode(draft.orEmpty())}"
 
     fun newChat(draft: String? = null): String = "new?draft=${Uri.encode(draft.orEmpty())}"
+
+    fun sender(address: String): String = "sender/${Uri.encode(address)}"
 }
 
 @Composable
@@ -153,6 +157,13 @@ private fun AppNavHost(threadRequests: Flow<ThreadRequest>) {
                 initialDraft = args.getString("draft").orEmpty(),
                 onBack = dropUnlessResumed { navController.popBackStack() },
                 onForward = { navController.navigate(Routes.newChat(it)) },
+                onSenderDetails = { navController.navigate(Routes.sender(it)) },
+            )
+        }
+        composable(Routes.SENDER, arguments = listOf(navArgument("address") { type = NavType.StringType })) { entry ->
+            SenderScreen(
+                address = entry.arguments!!.getString("address").orEmpty(),
+                onBack = dropUnlessResumed { navController.popBackStack() },
             )
         }
         composable(
