@@ -420,7 +420,7 @@ fun ThreadScreen(
 }
 
 @Composable
-internal fun DetailRow(label: String, value: String) {
+private fun DetailRow(label: String, value: String) {
     Column {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.bodyLarge)
