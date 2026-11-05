@@ -42,6 +42,8 @@ class ConversationsViewModel(private val container: AppContainer, archived: Bool
 
     fun toggleLabel(label: Label) = _labels.update { if (label in it) it - label else it + label }
 
+    fun clearLabels() = _labels.update { emptySet() }
+
     fun setArchived(threadIds: Set<Long>, archived: Boolean) = container.scope.launch {
         container.messaging.setArchived(threadIds.toList(), archived)
     }
