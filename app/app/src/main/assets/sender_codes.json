@@ -1,0 +1,45 @@
+{
+  "tsps": {
+    "D": { "short": "AIRCEL", "name": "Aircel Ltd/ Dishnet Wireless Ltd" },
+    "A": { "short": "AIRTEL", "name": "Bharti Airtel Ltd/ Bharti Hexacom Ltd" },
+    "B": { "short": "BSNL", "name": "Bharat Sanchar Nigam Ltd" },
+    "J": { "short": "JIO", "name": "Reliance Jio Infocomm Ltd" },
+    "M": { "short": "MTNL", "name": "Mahanagar Telephone Nigam Ltd" },
+    "Q": { "short": "QTL", "name": "Quadrant Televentures Limited" },
+    "R": { "short": "RCL", "name": "Reliance Communications Ltd" },
+    "E": { "short": "RTL", "name": "Reliance Telecom Ltd" },
+    "T": { "short": "TATA", "name": "Tata Teleservices Ltd/ Tata Teleservices (Mah) Ltd" },
+    "C": { "short": "VCON", "name": "V-CON Mobile & Infra Private Ltd." },
+    "V": { "short": "VODAIDEA", "name": "Vodafone Idea Ltd." }
+  },
+  "service_areas": {
+    "A": "Andhra Pradesh",
+    "S": "Assam",
+    "B": "Bihar",
+    "D": "Delhi",
+    "G": "Gujarat",
+    "H": "Haryana",
+    "I": "Himachal Pradesh",
+    "J": "Jammu & Kashmir",
+    "X": "Karnataka",
+    "L": "Kerala",
+    "K": "Kolkata",
+    "Y": "Madhya Pradesh",
+    "Z": "Maharashtra",
+    "M": "Mumbai",
+    "N": "North East",
+    "O": "Orissa",
+    "P": "Punjab",
+    "R": "Rajasthan",
+    "T": "TamilNadu including Chennai",
+    "E": "UP-East",
+    "W": "UP-West",
+    "V": "West Bengal"
+  },
+  "types": {
+    "S": "Service",
+    "P": "Promotional",
+    "T": "Transactional",
+    "G": "Government"
+  }
+}

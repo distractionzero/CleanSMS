@@ -4,8 +4,11 @@ import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONObject
 
 data class SenderEntity(val header: String, val name: String, val address: String?)
+
+data class SenderCode(val operator: String?, val serviceArea: String?, val type: String?)
 
 /** Maps DLT sender headers (e.g. KOTAKB in AD-KOTAKB-S) to the registered entity. */
 class SenderDirectory(private val context: Context) {
@@ -28,6 +31,23 @@ class SenderDirectory(private val context: Context) {
         }
     }
 
+    private val codes by lazy {
+        JSONObject(context.assets.open(CODES_ASSET).bufferedReader().use { it.readText() })
+    }
+
+    suspend fun codeOf(address: String): SenderCode? {
+        val parts = address.trim().uppercase().split('-')
+        if (parts.size < 2 || parts[0].length != 2) return null
+        return withContext(Dispatchers.IO) {
+            val prefix = parts[0]
+            SenderCode(
+                operator = codes.getJSONObject("tsps").optJSONObject(prefix.take(1))?.optString("name"),
+                serviceArea = codes.getJSONObject("service_areas").optString(prefix.drop(1)).ifEmpty { null },
+                type = parts.getOrNull(2)?.let { codes.getJSONObject("types").optString(it) }?.ifEmpty { null },
+            )
+        }
+    }
+
     suspend fun entityOf(address: String): SenderEntity? {
         val parts = address.trim().uppercase().split('-')
         val header = if (parts.size >= 2) parts[1] else parts[0]
@@ -37,5 +57,6 @@ class SenderDirectory(private val context: Context) {
 
     private companion object {
         const val ASSET = "sender_headers.json"
+        const val CODES_ASSET = "sender_codes.json"
     }
 }

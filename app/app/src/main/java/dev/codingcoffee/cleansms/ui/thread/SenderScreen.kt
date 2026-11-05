@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.codingcoffee.cleansms.container
 import dev.codingcoffee.cleansms.data.contacts.Contact
+import dev.codingcoffee.cleansms.data.contacts.SenderCode
 import dev.codingcoffee.cleansms.data.contacts.SenderEntity
 import dev.codingcoffee.cleansms.ui.components.Avatar
 
@@ -35,6 +36,7 @@ import dev.codingcoffee.cleansms.ui.components.Avatar
 fun SenderScreen(address: String, onBack: () -> Unit) {
     val senders = LocalContext.current.container.senders
     val entity by produceState<SenderEntity?>(null, address) { value = senders.entityOf(address) }
+    val code by produceState<SenderCode?>(null, address) { value = senders.codeOf(address) }
     val contacts = remember(address) { listOf(Contact(address, null, null)) }
 
     Scaffold(
@@ -63,6 +65,11 @@ fun SenderScreen(address: String, onBack: () -> Unit) {
             entity?.let { info ->
                 DetailRow("Sender ID", info.header)
                 info.address?.let { DetailRow("Registered address", it) }
+            }
+            code?.let { info ->
+                info.type?.let { DetailRow("Message type", it) }
+                info.operator?.let { DetailRow("Telecom operator", it) }
+                info.serviceArea?.let { DetailRow("Service area", it) }
             }
         }
     }
