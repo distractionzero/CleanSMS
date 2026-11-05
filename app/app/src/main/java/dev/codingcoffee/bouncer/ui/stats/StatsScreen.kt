@@ -173,7 +173,7 @@ private fun ReceivedPerHour(since: Long) {
     val counts = remember(hourly) { IntArray(24).also { array -> hourly.forEach { array[it.hour] = it.count } } }
 
     ChartTitle("Received by time of day")
-    LabelFilter(selected = label, onToggle = { label = if (label == it) null else it }, contentPadding = PaddingValues(0.dp))
+    LabelFilter(selected = setOfNotNull(label), onToggle = { label = if (label == it) null else it }, contentPadding = PaddingValues(0.dp))
     ChartCard { HourlyChart(counts, Modifier.fillMaxWidth().height(180.dp)) }
 }
 

@@ -22,17 +22,17 @@ import kotlinx.coroutines.launch
 data class FilteredConversation(val key: String, val conversation: ConversationEntity)
 
 class ConversationsViewModel(private val container: AppContainer, archived: Boolean) : ViewModel() {
-    private val _label = MutableStateFlow<Label?>(null)
-    val label = _label.asStateFlow()
+    private val _labels = MutableStateFlow(emptySet<Label>())
+    val labels = _labels.asStateFlow()
     private val _unreadOnly = MutableStateFlow(false)
     val unreadOnly = _unreadOnly.asStateFlow()
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val conversations = combine(_label, _unreadOnly, ::Pair).flatMapLatest { (label, unreadOnly) ->
+    val conversations = combine(_labels, _unreadOnly, ::Pair).flatMapLatest { (labels, unreadOnly) ->
         Pager(
             PagingConfig(pageSize = 50, prefetchDistance = 100, initialLoadSize = 100, enablePlaceholders = true),
-        ) { container.db.conversations().paging(archived, label, unreadOnly) }.flow
-            .map { data -> data.map { FilteredConversation("$label:$unreadOnly:${it.threadId}", it) } }
+        ) { container.db.conversations().paging(archived, labels, labels.isEmpty(), unreadOnly) }.flow
+            .map { data -> data.map { FilteredConversation("$labels:$unreadOnly:${it.threadId}", it) } }
     }.cachedIn(viewModelScope)
 
     val syncState = container.sync.state
@@ -40,7 +40,7 @@ class ConversationsViewModel(private val container: AppContainer, archived: Bool
 
     fun toggleUnreadOnly() = _unreadOnly.update { !it }
 
-    fun toggleLabel(label: Label) = _label.update { if (it == label) null else label }
+    fun toggleLabel(label: Label) = _labels.update { if (label in it) it - label else it + label }
 
     fun setArchived(threadIds: Set<Long>, archived: Boolean) = container.scope.launch {
         container.messaging.setArchived(threadIds.toList(), archived)

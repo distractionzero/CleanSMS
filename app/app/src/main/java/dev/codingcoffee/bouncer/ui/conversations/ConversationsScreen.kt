@@ -93,7 +93,7 @@ fun ConversationsScreen(
     val vm: ConversationsViewModel = viewModel(key = "conversations-$archived") { ConversationsViewModel(container, archived) }
     val conversations = vm.conversations.collectAsLazyPagingItems()
     val syncState by vm.syncState.collectAsStateWithLifecycle()
-    val label by vm.label.collectAsStateWithLifecycle()
+    val labels by vm.labels.collectAsStateWithLifecycle()
     val unreadOnly by vm.unreadOnly.collectAsStateWithLifecycle()
     val labelState by vm.labelState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
@@ -179,7 +179,7 @@ fun ConversationsScreen(
                     }
                 }
             }
-            LabelFilter(selected = label, onToggle = { refilter { vm.toggleLabel(it) } })
+            LabelFilter(selected = labels, onToggle = { refilter { vm.toggleLabel(it) } })
             (syncState as? SyncState.Importing)?.let { state ->
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Text(
@@ -199,7 +199,7 @@ fun ConversationsScreen(
                     Text(
                         when {
                             unreadOnly -> "No unread conversations"
-                            label != null -> "No conversations labelled ${label?.name}"
+                            labels.isNotEmpty() -> "No conversations labelled ${labels.joinToString(" or ") { it.name }}"
                             archived -> "No archived conversations"
                             else -> "No conversations yet"
                         },

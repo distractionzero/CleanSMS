@@ -11,11 +11,11 @@ import androidx.compose.ui.unit.dp
 import dev.codingcoffee.bouncer.data.db.Label
 
 @Composable
-fun LabelFilter(selected: Label?, onToggle: (Label) -> Unit, contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp)) {
+fun LabelFilter(selected: Set<Label>, onToggle: (Label) -> Unit, contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp)) {
     LazyRow(contentPadding = contentPadding, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(Label.entries) { label ->
             FilterChip(
-                selected = label == selected,
+                selected = label in selected,
                 onClick = { onToggle(label) },
                 label = { Text(label.name) },
             )
