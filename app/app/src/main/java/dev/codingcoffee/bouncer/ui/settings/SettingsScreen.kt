@@ -169,13 +169,6 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
                 }
             }
 
-            SectionHeader("About")
-            SettingsCard {
-                SettingRow(Icons.Filled.Policy, "Privacy policy", null, onClick = onPrivacyPolicy)
-                SettingRow(Icons.Filled.Description, "Open source licenses", null, onClick = onLicenses)
-                SettingRow(Icons.Filled.Info, "Version", BuildConfig.VERSION_NAME, chevron = false)
-            }
-
             SectionHeader("Data")
             SettingsCard {
                 SettingRow(
@@ -205,6 +198,19 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
                 }
             }
 
+            SectionHeader("About")
+            SettingsCard {
+                SettingRow(Icons.Filled.Info, "Version", BuildConfig.VERSION_NAME, chevron = false)
+                SettingRow(Icons.Filled.Policy, "Privacy policy", null, onClick = onPrivacyPolicy)
+                SettingRow(Icons.Filled.Description, "Open source licenses", null, onClick = onLicenses)
+                SettingRow(Icons.Filled.Person, "Developer", "Ameya Shenoy\ncodingcoffee.dev") {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.codingcoffee.dev")))
+                }
+                SettingRow(Icons.Filled.Code, "Source code", "github.com/distractionzero/bouncer") {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/distractionzero/bouncer")))
+                }
+            }
+
             if (BuildConfig.DEBUG) {
                 SectionHeader("Debug")
                 SettingsCard {
@@ -219,15 +225,6 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
                     SettingRow(Icons.Filled.DeleteSweep, "Remove test messages", null, chevron = false) {
                         scope.launch { DebugSeeder.clear(container.db) }
                     }
-                }
-            }
-            Spacer(Modifier.height(20.dp))
-            SettingsCard {
-                SettingRow(Icons.Filled.Person, "Developer", "Ameya Shenoy\ncodingcoffee.dev") {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.codingcoffee.dev")))
-                }
-                SettingRow(Icons.Filled.Code, "Source code", "github.com/distractionzero/bouncer") {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/distractionzero/bouncer")))
                 }
             }
             Spacer(Modifier.height(16.dp))
