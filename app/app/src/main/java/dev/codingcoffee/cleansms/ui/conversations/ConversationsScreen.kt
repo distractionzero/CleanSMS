@@ -357,7 +357,6 @@ private fun ConversationRow(
     val entity = rememberSenderEntity(contacts)?.name
     val unread = conversation.unreadCount > 0
     val time = remember(conversation.date) { TimeFormat.conversation(context, conversation.date) }
-    val emphasis = if (unread) FontWeight.Bold else FontWeight.Normal
 
     Row(
         Modifier
@@ -376,7 +375,7 @@ private fun ConversationRow(
                     entity ?: contacts.title(),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (unread) FontWeight.Bold else FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -384,17 +383,7 @@ private fun ConversationRow(
                 Text(
                     time,
                     style = MaterialTheme.typography.labelMedium,
-                    fontWeight = emphasis,
-                    color = if (unread) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (entity != null) {
-                Text(
-                    contacts.title(),
-                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -402,9 +391,8 @@ private fun ConversationRow(
                     if (conversation.lastFromMe) "You: ${conversation.snippet}" else conversation.snippet,
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = emphasis,
-                    color = if (unread) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (unread) {
