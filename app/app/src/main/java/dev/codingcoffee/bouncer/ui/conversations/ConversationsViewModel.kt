@@ -5,15 +5,21 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.cachedIn
+import androidx.paging.map
 import dev.codingcoffee.bouncer.AppContainer
+import dev.codingcoffee.bouncer.data.db.ConversationEntity
 import dev.codingcoffee.bouncer.data.db.Label
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+// Keys are scoped to the filter so the list doesn't anchor to an item from the previous filter.
+data class FilteredConversation(val key: String, val conversation: ConversationEntity)
 
 class ConversationsViewModel(private val container: AppContainer, archived: Boolean) : ViewModel() {
     private val _label = MutableStateFlow<Label?>(null)
@@ -26,6 +32,7 @@ class ConversationsViewModel(private val container: AppContainer, archived: Bool
         Pager(
             PagingConfig(pageSize = 50, prefetchDistance = 100, initialLoadSize = 100, enablePlaceholders = true),
         ) { container.db.conversations().paging(archived, label, unreadOnly) }.flow
+            .map { data -> data.map { FilteredConversation("$label:$unreadOnly:${it.threadId}", it) } }
     }.cachedIn(viewModelScope)
 
     val syncState = container.sync.state

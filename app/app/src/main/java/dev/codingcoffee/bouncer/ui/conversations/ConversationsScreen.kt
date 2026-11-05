@@ -54,6 +54,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,6 +77,7 @@ import dev.codingcoffee.bouncer.ui.components.LabelFilter
 import dev.codingcoffee.bouncer.ui.components.rememberContacts
 import dev.codingcoffee.bouncer.ui.components.title
 import dev.codingcoffee.bouncer.util.TimeFormat
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,6 +97,11 @@ fun ConversationsScreen(
     val unreadOnly by vm.unreadOnly.collectAsStateWithLifecycle()
     val labelState by vm.labelState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    fun refilter(apply: () -> Unit) {
+        apply()
+        scope.launch { listState.scrollToItem(0) }
+    }
     val fabExpanded by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     var selected by remember { mutableStateOf(emptySet<Long>()) }
     var confirmDelete by remember { mutableStateOf(false) }
@@ -134,7 +141,7 @@ fun ConversationsScreen(
                             }
                         }
                         WithTooltip("Unread only") {
-                            IconToggleButton(checked = unreadOnly, onCheckedChange = { vm.toggleUnreadOnly() }) {
+                            IconToggleButton(checked = unreadOnly, onCheckedChange = { refilter(vm::toggleUnreadOnly) }) {
                                 Icon(if (unreadOnly) Icons.Filled.MarkChatUnread else Icons.Outlined.MarkChatUnread, "Unread only")
                             }
                         }
@@ -172,7 +179,7 @@ fun ConversationsScreen(
                     }
                 }
             }
-            LabelFilter(selected = label, onToggle = vm::toggleLabel)
+            LabelFilter(selected = label, onToggle = { refilter { vm.toggleLabel(it) } })
             (syncState as? SyncState.Importing)?.let { state ->
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Text(
@@ -205,8 +212,8 @@ fun ConversationsScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 96.dp),
             ) {
-                items(count = conversations.itemCount, key = conversations.itemKey { it.threadId }, contentType = { 0 }) { index ->
-                    val conversation = conversations[index]
+                items(count = conversations.itemCount, key = conversations.itemKey { it.key }, contentType = { 0 }) { index ->
+                    val conversation = conversations[index]?.conversation
                     if (conversation == null) {
                         Spacer(Modifier.height(ROW_HEIGHT))
                     } else {
