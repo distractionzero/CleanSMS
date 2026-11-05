@@ -182,7 +182,7 @@ fun ConversationsScreen(
             LabelFilter(selected = labels, onToggle = { refilter { vm.toggleLabel(it) } })
             if (labels.isNotEmpty()) {
                 TextButton(onClick = { refilter(vm::clearLabels) }, modifier = Modifier.padding(horizontal = 4.dp)) {
-                    Text("Clear filters")
+                    Text("Clear filters", color = MaterialTheme.colorScheme.error)
                 }
             }
             (syncState as? SyncState.Importing)?.let { state ->
