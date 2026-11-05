@@ -1,5 +1,10 @@
 package dev.codingcoffee.cleansms.ui.conversations
 
+import android.content.ClipData
+import android.content.ClipDescription
+import android.content.ClipboardManager
+import android.os.Build
+import android.os.PersistableBundle
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -15,18 +20,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MarkChatUnread
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.MarkChatRead
 import androidx.compose.material.icons.outlined.MarkChatUnread
@@ -35,6 +44,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconToggleButton
@@ -42,6 +52,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipAnchorPosition
@@ -54,7 +65,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -63,6 +73,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -77,6 +88,7 @@ import dev.codingcoffee.cleansms.data.sync.SyncState
 import dev.codingcoffee.cleansms.ui.components.Avatar
 import dev.codingcoffee.cleansms.ui.components.LabelFilter
 import dev.codingcoffee.cleansms.ui.components.rememberContacts
+import dev.codingcoffee.cleansms.ui.components.rememberSenderEntity
 import dev.codingcoffee.cleansms.ui.components.title
 import dev.codingcoffee.cleansms.util.TimeFormat
 import kotlinx.coroutines.launch
@@ -98,6 +110,7 @@ fun ConversationsScreen(
     val labels by vm.labels.collectAsStateWithLifecycle()
     val unreadOnly by vm.unreadOnly.collectAsStateWithLifecycle()
     val labelState by vm.labelState.collectAsStateWithLifecycle()
+    val recentOtp by vm.recentOtp.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     fun refilter(apply: () -> Unit) {
@@ -180,6 +193,9 @@ fun ConversationsScreen(
                         )
                     }
                 }
+            }
+            if (!archived && !selecting) {
+                recentOtp?.let { otp -> OtpCard(otp, onOpen = { onOpenThread(otp.message.threadId) }) }
             }
             LabelFilter(selected = labels, onToggle = { refilter { vm.toggleLabel(it) } })
             if (labels.isNotEmpty()) {
@@ -270,6 +286,61 @@ private fun WithTooltip(text: String, content: @Composable () -> Unit) {
     )
 }
 
+@Composable
+private fun OtpCard(otp: RecentOtp, onOpen: () -> Unit) {
+    val context = LocalContext.current
+    val contacts = rememberContacts(remember(otp.message.address) { listOf(otp.message.address) })
+    val entity = rememberSenderEntity(contacts)
+    var copied by remember(otp.code) { mutableStateOf(false) }
+
+    Surface(
+        onClick = onOpen,
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Row(Modifier.padding(start = 20.dp, end = 16.dp, top = 14.dp, bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "OTP from ${entity?.name ?: contacts.title()}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (entity != null) {
+                    Text(
+                        otp.message.address,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        maxLines = 1,
+                    )
+                }
+                Text(
+                    otp.code,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 4.sp,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            FilledTonalButton(onClick = {
+                val clip = ClipData.newPlainText("OTP", otp.code)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    clip.description.extras = PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true) }
+                }
+                context.getSystemService(ClipboardManager::class.java).setPrimaryClip(clip)
+                copied = true
+            }) {
+                Icon(if (copied) Icons.Filled.Check else Icons.Outlined.ContentCopy, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(if (copied) "Copied" else "Copy")
+            }
+        }
+    }
+}
+
 private fun Set<Long>.toggle(id: Long): Set<Long> = if (id in this) this - id else this + id
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -283,10 +354,7 @@ private fun ConversationRow(
     val context = LocalContext.current
     val addresses = remember(conversation.addresses) { conversation.addressList }
     val contacts = rememberContacts(addresses)
-    val senders = context.container.senders
-    val entity by produceState<String?>(null, contacts) {
-        value = contacts.singleOrNull()?.takeIf { it.name == null }?.let { senders.entityOf(it.address)?.name }
-    }
+    val entity = rememberSenderEntity(contacts)?.name
     val unread = conversation.unreadCount > 0
     val time = remember(conversation.date) { TimeFormat.conversation(context, conversation.date) }
     val emphasis = if (unread) FontWeight.Bold else FontWeight.Normal

@@ -18,6 +18,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.codingcoffee.cleansms.container
 import dev.codingcoffee.cleansms.data.contacts.Contact
+import dev.codingcoffee.cleansms.data.contacts.SenderEntity
 import dev.codingcoffee.cleansms.util.rememberImage
 
 private val avatarHues = floatArrayOf(4f, 28f, 145f, 175f, 205f, 230f, 265f, 320f)
@@ -48,6 +50,15 @@ fun rememberContacts(addresses: List<String>): List<Contact> {
         if (addresses.any { repo.peek(it) == null }) contacts = addresses.map { repo.get(it) }
     }
     return contacts
+}
+
+@Composable
+fun rememberSenderEntity(contacts: List<Contact>): SenderEntity? {
+    val senders = LocalContext.current.container.senders
+    val entity by produceState<SenderEntity?>(null, contacts) {
+        value = contacts.singleOrNull()?.takeIf { it.name == null }?.let { senders.entityOf(it.address) }
+    }
+    return entity
 }
 
 fun List<Contact>.title(): String = when {

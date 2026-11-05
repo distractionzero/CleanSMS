@@ -62,7 +62,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -88,7 +87,6 @@ import dev.codingcoffee.cleansms.container
 import dev.codingcoffee.cleansms.data.MessageDetails
 import dev.codingcoffee.cleansms.data.contacts.Contact
 import dev.codingcoffee.cleansms.data.contacts.ContactRepository
-import dev.codingcoffee.cleansms.data.contacts.SenderEntity
 import dev.codingcoffee.cleansms.data.db.Box as MessageBox
 import dev.codingcoffee.cleansms.data.db.Label
 import dev.codingcoffee.cleansms.data.db.MessageEntity
@@ -96,6 +94,7 @@ import dev.codingcoffee.cleansms.notify.ActiveThread
 import dev.codingcoffee.cleansms.ui.components.Avatar
 import dev.codingcoffee.cleansms.ui.components.ConfirmLinks
 import dev.codingcoffee.cleansms.ui.components.rememberContacts
+import dev.codingcoffee.cleansms.ui.components.rememberSenderEntity
 import dev.codingcoffee.cleansms.ui.components.title
 import dev.codingcoffee.cleansms.util.TimeFormat
 import dev.codingcoffee.cleansms.util.isPhoneNumber
@@ -123,9 +122,7 @@ fun ThreadScreen(
     val addresses by vm.addresses.collectAsStateWithLifecycle()
     val contacts = rememberContacts(addresses)
     val contactsByKey = remember(contacts) { contacts.associateBy { ContactRepository.key(it.address) } }
-    val entity by produceState<SenderEntity?>(null, contacts) {
-        value = contacts.singleOrNull()?.takeIf { it.name == null }?.let { container.senders.entityOf(it.address) }
-    }
+    val entity = rememberSenderEntity(contacts)
     val isGroup = addresses.size > 1
     val canReply = addresses.all(::isPhoneNumber)
     val listState = rememberLazyListState()
