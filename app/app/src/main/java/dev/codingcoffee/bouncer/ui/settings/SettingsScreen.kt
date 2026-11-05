@@ -2,6 +2,7 @@ package dev.codingcoffee.bouncer.ui.settings
 
 import android.app.UiModeManager
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -26,9 +27,11 @@ import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Sms
@@ -216,6 +219,15 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
                     SettingRow(Icons.Filled.DeleteSweep, "Remove test messages", null, chevron = false) {
                         scope.launch { DebugSeeder.clear(container.db) }
                     }
+                }
+            }
+            Spacer(Modifier.height(20.dp))
+            SettingsCard {
+                SettingRow(Icons.Filled.Person, "Developer", "Ameya Shenoy\ncodingcoffee.dev") {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.codingcoffee.dev")))
+                }
+                SettingRow(Icons.Filled.Code, "Source code", "github.com/distractionzero/bouncer") {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/distractionzero/bouncer")))
                 }
             }
             Spacer(Modifier.height(16.dp))
