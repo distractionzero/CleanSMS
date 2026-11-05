@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -53,6 +54,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -255,7 +257,7 @@ fun ConversationsScreen(
     }
 }
 
-private val ROW_HEIGHT = 76.dp
+private val ROW_HEIGHT = 92.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -281,6 +283,10 @@ private fun ConversationRow(
     val context = LocalContext.current
     val addresses = remember(conversation.addresses) { conversation.addressList }
     val contacts = rememberContacts(addresses)
+    val senders = context.container.senders
+    val entity by produceState<String?>(null, contacts) {
+        value = contacts.singleOrNull()?.takeIf { it.name == null }?.let { senders.entityOf(it.address) }
+    }
     val unread = conversation.unreadCount > 0
     val time = remember(conversation.date) { TimeFormat.conversation(context, conversation.date) }
     val emphasis = if (unread) FontWeight.Bold else FontWeight.Normal
@@ -290,6 +296,7 @@ private fun ConversationRow(
             .fillMaxWidth()
             .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .heightIn(min = ROW_HEIGHT)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -298,7 +305,7 @@ private fun ConversationRow(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    contacts.title(),
+                    entity ?: contacts.title(),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = if (unread) FontWeight.Bold else FontWeight.Medium,
@@ -311,6 +318,15 @@ private fun ConversationRow(
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = emphasis,
                     color = if (unread) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (entity != null) {
+                Text(
+                    contacts.title(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {

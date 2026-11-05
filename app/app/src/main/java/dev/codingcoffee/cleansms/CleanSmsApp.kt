@@ -5,6 +5,7 @@ import android.content.Context
 import dev.codingcoffee.cleansms.data.Messaging
 import dev.codingcoffee.cleansms.data.classify.Labeler
 import dev.codingcoffee.cleansms.data.contacts.ContactRepository
+import dev.codingcoffee.cleansms.data.contacts.SenderDirectory
 import dev.codingcoffee.cleansms.data.db.CleanSmsDatabase
 import dev.codingcoffee.cleansms.data.mms.MmsService
 import dev.codingcoffee.cleansms.data.prefs.SettingsStore
@@ -34,6 +35,7 @@ class AppContainer(context: Context) {
     val settings = SettingsStore(context)
     val db = CleanSmsDatabase.create(context)
     val contacts = ContactRepository(context)
+    val senders = SenderDirectory(context)
     val sync = TelephonySync(context, db, settings, scope)
     val notifier: Notifier = Notifier(context, db, contacts, settings) { labeler.labelOf(it) }
     val mms = MmsService(context, db, sync)
