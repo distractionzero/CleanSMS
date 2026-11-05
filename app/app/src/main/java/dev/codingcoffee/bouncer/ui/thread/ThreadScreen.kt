@@ -231,7 +231,7 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
                         }
                     },
                     actions = {
-                        if (!isGroup && addresses.isNotEmpty()) {
+                        if (!isGroup && addresses.isNotEmpty() && canReply) {
                             IconButton(onClick = {
                                 context.startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", addresses.first(), null)))
                             }) { Icon(Icons.Outlined.Call, "Call") }
