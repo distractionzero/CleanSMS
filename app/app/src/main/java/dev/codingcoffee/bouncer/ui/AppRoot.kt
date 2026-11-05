@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -134,7 +135,7 @@ private fun AppNavHost(threadRequests: Flow<ThreadRequest>) {
                 onNewChat = {},
                 onSearch = {},
                 onArchived = {},
-                onBack = { navController.popBackStack() },
+                onBack = dropUnlessResumed { navController.popBackStack() },
             )
         }
         composable(
@@ -150,7 +151,7 @@ private fun AppNavHost(threadRequests: Flow<ThreadRequest>) {
                 threadId = args.getLong("threadId"),
                 focusMessageId = args.getLong("focus").takeIf { it != Long.MIN_VALUE },
                 initialDraft = args.getString("draft").orEmpty(),
-                onBack = { navController.popBackStack() },
+                onBack = dropUnlessResumed { navController.popBackStack() },
                 onForward = { navController.navigate(Routes.newChat(it)) },
             )
         }
@@ -160,21 +161,21 @@ private fun AppNavHost(threadRequests: Flow<ThreadRequest>) {
         ) { entry ->
             val draft = entry.arguments!!.getString("draft").orEmpty()
             NewChatScreen(
-                onBack = { navController.popBackStack() },
+                onBack = dropUnlessResumed { navController.popBackStack() },
                 onOpenThread = { threadId ->
                     navController.navigate(Routes.thread(threadId, draft = draft)) { popUpTo(Routes.NEW_CHAT) { inclusive = true } }
                 },
             )
         }
         composable(Routes.PRIVACY_POLICY) {
-            PrivacyPolicyScreen(onBack = { navController.popBackStack() })
+            PrivacyPolicyScreen(onBack = dropUnlessResumed { navController.popBackStack() })
         }
         composable(Routes.LICENSES) {
-            LicensesScreen(onBack = { navController.popBackStack() })
+            LicensesScreen(onBack = dropUnlessResumed { navController.popBackStack() })
         }
         composable(Routes.SEARCH) {
             SearchScreen(
-                onBack = { navController.popBackStack() },
+                onBack = dropUnlessResumed { navController.popBackStack() },
                 onOpenMessage = { threadId, messageId -> navController.navigate(Routes.thread(threadId, messageId)) },
             )
         }
