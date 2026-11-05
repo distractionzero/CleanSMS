@@ -1,7 +1,11 @@
 package dev.codingcoffee.bouncer.ui.components
 
+import android.net.Uri
 import android.util.Patterns
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -17,8 +21,10 @@ import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
+import androidx.compose.ui.unit.dp
 
 fun linkify(text: String): AnnotatedString {
     val matcher = Patterns.WEB_URL.matcher(text)
@@ -40,7 +46,7 @@ fun linkify(text: String): AnnotatedString {
 
 /** Asks before opening any link tapped inside [content]. */
 @Composable
-fun ConfirmLinks(content: @Composable () -> Unit) {
+fun ConfirmLinks(knownSender: Boolean, content: @Composable () -> Unit) {
     val uriHandler = LocalUriHandler.current
     var pending by remember { mutableStateOf<String?>(null) }
     val confirming = remember {
@@ -53,8 +59,13 @@ fun ConfirmLinks(content: @Composable () -> Unit) {
     pending?.let { url ->
         AlertDialog(
             onDismissRequest = { pending = null },
-            title = { Text("Open link?") },
-            text = { Text(url) },
+            title = { Text(if (knownSender) "Open link?" else "Caution: Unknown sender") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (!knownSender) Text("Links from unknown senders may be harmful")
+                    Text(boldHost(url), color = MaterialTheme.colorScheme.onSurface)
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
                     pending = null
@@ -63,5 +74,15 @@ fun ConfirmLinks(content: @Composable () -> Unit) {
             },
             dismissButton = { TextButton(onClick = { pending = null }) { Text("Disallow") } },
         )
+    }
+}
+
+private fun boldHost(url: String): AnnotatedString {
+    val host = Uri.parse(url).host ?: return AnnotatedString(url)
+    val start = url.indexOf(host, ignoreCase = true)
+    if (start < 0) return AnnotatedString(url)
+    return buildAnnotatedString {
+        append(url)
+        addStyle(SpanStyle(fontWeight = FontWeight.Bold), start, start + host.length)
     }
 }

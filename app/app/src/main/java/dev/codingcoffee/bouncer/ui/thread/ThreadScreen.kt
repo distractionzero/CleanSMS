@@ -284,7 +284,7 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
             )
         },
     ) { padding ->
-        ConfirmLinks {
+        ConfirmLinks(knownSender = contacts.isNotEmpty() && contacts.all { it.name != null }) {
             LazyColumn(
                 state = listState,
                 reverseLayout = true,
