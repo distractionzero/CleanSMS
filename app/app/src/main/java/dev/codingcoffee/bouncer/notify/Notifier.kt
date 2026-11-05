@@ -105,7 +105,7 @@ class Notifier(
             .build()
 
         val notification = NotificationCompat.Builder(context, CHANNEL_MESSAGES)
-            .setSmallIcon(label.icon)
+            .setSmallIcon(R.drawable.ic_notification)
             .setStyle(style)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -135,19 +135,6 @@ class Notifier(
         Intent(action, null, context, NotificationActionReceiver::class.java)
             .putExtra(NotificationActionReceiver.EXTRA_THREAD_ID, message.threadId)
             .putExtra(NotificationActionReceiver.EXTRA_MESSAGE_ID, message.id)
-
-    private val Label.icon: Int
-        get() = when (this) {
-            Label.Personal -> R.drawable.ic_notification_personal
-            Label.OTP -> R.drawable.ic_notification_otp
-            Label.Government -> R.drawable.ic_notification_government
-            Label.Reminder -> R.drawable.ic_notification_reminder
-            Label.Transaction -> R.drawable.ic_notification_transaction
-            Label.Service -> R.drawable.ic_notification_service
-            Label.Promotional -> R.drawable.ic_notification_promotional
-            Label.Spam -> R.drawable.ic_notification_spam
-            Label.Unknown -> R.drawable.ic_notification
-        }
 
     companion object {
         const val CHANNEL_MESSAGES = "messages"
