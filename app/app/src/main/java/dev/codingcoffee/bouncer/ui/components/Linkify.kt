@@ -63,7 +63,7 @@ fun ConfirmLinks(knownSender: Boolean, content: @Composable () -> Unit) {
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (!knownSender) Text("Links from unknown senders may be harmful")
-                    Text(boldHost(url), color = MaterialTheme.colorScheme.onSurface)
+                    Text(boldDomain(url), color = MaterialTheme.colorScheme.onSurface)
                 }
             },
             confirmButton = {
@@ -77,12 +77,18 @@ fun ConfirmLinks(knownSender: Boolean, content: @Composable () -> Unit) {
     }
 }
 
-private fun boldHost(url: String): AnnotatedString {
+private fun boldDomain(url: String): AnnotatedString {
     val host = Uri.parse(url).host ?: return AnnotatedString(url)
-    val start = url.indexOf(host, ignoreCase = true)
-    if (start < 0) return AnnotatedString(url)
+    val labels = host.split('.')
+    val keep = if (MULTI_PART_SUFFIXES.any { host.endsWith(".$it", ignoreCase = true) }) 3 else 2
+    val domain = labels.takeLast(keep).joinToString(".")
+    val hostStart = url.indexOf(host, ignoreCase = true)
+    if (hostStart < 0) return AnnotatedString(url)
+    val start = hostStart + host.length - domain.length
     return buildAnnotatedString {
         append(url)
-        addStyle(SpanStyle(fontWeight = FontWeight.Bold), start, start + host.length)
+        addStyle(SpanStyle(fontWeight = FontWeight.Bold), start, start + domain.length)
     }
 }
+
+private val MULTI_PART_SUFFIXES = listOf("bank.in")
