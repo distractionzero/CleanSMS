@@ -36,6 +36,11 @@ private fun Context.countryIso(): String =
     getSystemService(TelephonyManager::class.java)?.let { it.networkCountryIso.ifEmpty { it.simCountryIso } }
         ?.ifEmpty { null }?.uppercase() ?: Locale.getDefault().country
 
+private val PHONE_NUMBER = Regex("""\+?[0-9 ()./-]+""")
+
+/** True for phone numbers and short codes; false for sender IDs like `AX-KOTAKB-P` or RCS business IDs. */
+fun isPhoneNumber(address: String): Boolean = PHONE_NUMBER.matches(address)
+
 /** Parses `sms:`, `smsto:`, `mms:` and `mmsto:` URIs into recipient addresses. */
 fun recipientsFromUri(uri: android.net.Uri?): List<String> =
     uri?.schemeSpecificPart.orEmpty().substringBefore('?')

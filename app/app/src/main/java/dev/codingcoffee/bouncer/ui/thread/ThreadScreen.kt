@@ -74,6 +74,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -94,6 +95,7 @@ import dev.codingcoffee.bouncer.ui.components.Avatar
 import dev.codingcoffee.bouncer.ui.components.rememberContacts
 import dev.codingcoffee.bouncer.ui.components.title
 import dev.codingcoffee.bouncer.util.TimeFormat
+import dev.codingcoffee.bouncer.util.isPhoneNumber
 import dev.codingcoffee.bouncer.util.rememberImage
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -112,6 +114,7 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
     val contacts = rememberContacts(addresses)
     val contactsByKey = remember(contacts) { contacts.associateBy { ContactRepository.key(it.address) } }
     val isGroup = addresses.size > 1
+    val canReply = addresses.all(::isPhoneNumber)
     val listState = rememberLazyListState()
     var draft by rememberSaveable { mutableStateOf(initialDraft) }
     var attachment by rememberSaveable { mutableStateOf<Uri?>(null) }
@@ -253,7 +256,19 @@ fun ThreadScreen(threadId: Long, focusMessageId: Long?, initialDraft: String, on
             }
         },
         bottomBar = {
-            Composer(
+            if (!canReply) {
+                Text(
+                    "You can't reply to ${contacts.title()}. Messages can only be sent to phone numbers.",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .navigationBarsPadding()
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            } else Composer(
                 text = draft,
                 onTextChange = { draft = it },
                 attachment = attachment,

@@ -10,6 +10,7 @@ import dev.codingcoffee.bouncer.data.db.Label
 import dev.codingcoffee.bouncer.data.db.LabelChangeEntity
 import dev.codingcoffee.bouncer.data.db.MessageEntity
 import dev.codingcoffee.bouncer.data.prefs.SettingsStore
+import dev.codingcoffee.bouncer.util.isPhoneNumber
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -81,7 +82,7 @@ class Labeler(
     fun relabelAll() = scope.launch { db.messages().clearLabels() }
 
     private fun predict(address: String, body: String): Label {
-        val fromNumber = PHONE_NUMBER.matches(address)
+        val fromNumber = isPhoneNumber(address)
         if (body.isBlank()) return if (fromNumber) Label.Personal else Label.Promotional
         val scores = classifier.scores(body)
         val candidates = scores.indices.filter { fromNumber || labels[it] != Label.Personal }
@@ -152,6 +153,5 @@ class Labeler(
     private companion object {
         const val BATCH = 500
         const val SHOW_PROGRESS_FROM = 50
-        val PHONE_NUMBER = Regex("""\+?[0-9 ()./-]+""")
     }
 }
