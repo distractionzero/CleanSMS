@@ -1,6 +1,7 @@
 package dev.codingcoffee.cleansms.data.db
 
 import androidx.compose.runtime.Immutable
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Fts4
 import androidx.room.FtsOptions
@@ -71,6 +72,10 @@ data class ConversationEntity(
         const val ADDRESS_SEPARATOR = "|"
     }
 }
+
+/** A conversation with the label of its latest received message. */
+@Immutable
+data class LabelledConversation(@Embedded val conversation: ConversationEntity, val label: Label?)
 
 @Entity(tableName = "label_changes", indices = [Index("messageId")])
 data class LabelChangeEntity(

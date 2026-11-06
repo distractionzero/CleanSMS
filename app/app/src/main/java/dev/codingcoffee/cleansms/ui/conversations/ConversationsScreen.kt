@@ -84,6 +84,7 @@ import androidx.paging.compose.itemKey
 import dev.codingcoffee.cleansms.container
 import dev.codingcoffee.cleansms.data.classify.LabelState
 import dev.codingcoffee.cleansms.data.db.ConversationEntity
+import dev.codingcoffee.cleansms.data.db.Label
 import dev.codingcoffee.cleansms.data.sync.SyncState
 import dev.codingcoffee.cleansms.ui.components.Avatar
 import dev.codingcoffee.cleansms.ui.components.LabelFilter
@@ -236,13 +237,15 @@ fun ConversationsScreen(
                 contentPadding = PaddingValues(bottom = 96.dp),
             ) {
                 items(count = conversations.itemCount, key = conversations.itemKey { it.key }, contentType = { 0 }) { index ->
-                    val conversation = conversations[index]?.conversation
-                    if (conversation == null) {
+                    val item = conversations[index]
+                    if (item == null) {
                         Spacer(Modifier.height(ROW_HEIGHT))
                     } else {
+                        val conversation = item.conversation
                         val isSelected = conversation.threadId in selected
                         ConversationRow(
                             conversation = conversation,
+                            label = item.label,
                             selected = isSelected,
                             onClick = {
                                 if (selecting) selected = selected.toggle(conversation.threadId)
@@ -347,6 +350,7 @@ private fun Set<Long>.toggle(id: Long): Set<Long> = if (id in this) this - id el
 @Composable
 private fun ConversationRow(
     conversation: ConversationEntity,
+    label: Label?,
     selected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -381,7 +385,7 @@ private fun ConversationRow(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    time,
+                    label?.takeIf { it != Label.Unknown }?.let { "${it.name} · $time" } ?: time,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -25,7 +25,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 // Keys are scoped to the filter so the list doesn't anchor to an item from the previous filter.
-data class FilteredConversation(val key: String, val conversation: ConversationEntity)
+data class FilteredConversation(val key: String, val conversation: ConversationEntity, val label: Label?)
 
 data class RecentOtp(val message: MessageEntity, val code: String)
 
@@ -40,7 +40,7 @@ class ConversationsViewModel(private val container: AppContainer, archived: Bool
         Pager(
             PagingConfig(pageSize = 50, prefetchDistance = 100, initialLoadSize = 100, enablePlaceholders = true),
         ) { container.db.conversations().paging(archived, labels, labels.isEmpty(), unreadOnly) }.flow
-            .map { data -> data.map { FilteredConversation("$labels:$unreadOnly:${it.threadId}", it) } }
+            .map { data -> data.map { FilteredConversation("$labels:$unreadOnly:${it.conversation.threadId}", it.conversation, it.label) } }
     }.cachedIn(viewModelScope)
 
     @OptIn(ExperimentalCoroutinesApi::class)

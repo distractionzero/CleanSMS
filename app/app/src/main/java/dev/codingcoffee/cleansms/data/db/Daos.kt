@@ -162,14 +162,16 @@ interface LabelChangeDao {
 interface ConversationDao {
     @Query(
         """
-        SELECT * FROM conversations c WHERE archived = :archived AND (:anyLabel OR (
-            SELECT label FROM messages m WHERE m.threadId = c.threadId AND m.box = 1
-            ORDER BY m.date DESC, m.id DESC LIMIT 1
-        ) IN (:labels)) AND (:unreadOnly = 0 OR unreadCount > 0)
+        SELECT * FROM (
+            SELECT c.*, (
+                SELECT label FROM messages m WHERE m.threadId = c.threadId AND m.box = 1
+                ORDER BY m.date DESC, m.id DESC LIMIT 1
+            ) AS label FROM conversations c WHERE archived = :archived
+        ) WHERE (:anyLabel OR label IN (:labels)) AND (:unreadOnly = 0 OR unreadCount > 0)
         ORDER BY date DESC
         """
     )
-    fun paging(archived: Boolean, labels: Set<Label>, anyLabel: Boolean, unreadOnly: Boolean): PagingSource<Int, ConversationEntity>
+    fun paging(archived: Boolean, labels: Set<Label>, anyLabel: Boolean, unreadOnly: Boolean): PagingSource<Int, LabelledConversation>
 
     @Query("SELECT * FROM conversations WHERE threadId = :threadId")
     fun observe(threadId: Long): Flow<ConversationEntity?>
