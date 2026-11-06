@@ -1,6 +1,8 @@
 package dev.codingcoffee.cleansms.ui.settings
 
 import android.app.UiModeManager
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -28,6 +30,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Palette
@@ -84,6 +87,7 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
     val themeMode by container.settings.themeMode.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var seeding by remember { mutableStateOf<String?>(null) }
+    var unknownSendersStatus by remember { mutableStateOf<String?>(null) }
     val statsFlow = remember { container.db.messages().stats() }
     val stats by statsFlow.collectAsStateWithLifecycle(MessageStats(0, 0, 0, 0))
     var confirmDeleteAll by remember { mutableStateOf(false) }
@@ -186,6 +190,21 @@ fun SettingsScreen(onPrivacyPolicy: () -> Unit, onLicenses: () -> Unit) {
                     chevron = false,
                 ) {
                     if (labelChanges > 0) exporter.launch("clean-sms-label-changes-${LocalDate.now()}.json")
+                }
+                SettingRow(
+                    Icons.Filled.ContentCopy,
+                    "Copy unknown senders",
+                    unknownSendersStatus ?: "Sender IDs with no company name, one per line",
+                    chevron = false,
+                ) {
+                    scope.launch {
+                        val unknown = container.senders.unknown(container.db.messages().incomingAddresses())
+                        if (unknown.isNotEmpty()) {
+                            context.getSystemService(ClipboardManager::class.java)
+                                .setPrimaryClip(ClipData.newPlainText("Unknown senders", unknown.joinToString("\n")))
+                        }
+                        unknownSendersStatus = if (unknown.isEmpty()) "No unknown senders" else "Copied ${unknown.size} senders"
+                    }
                 }
                 SettingRow(
                     Icons.Filled.DeleteForever,

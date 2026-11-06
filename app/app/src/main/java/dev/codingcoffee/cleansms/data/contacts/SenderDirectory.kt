@@ -3,7 +3,6 @@ package dev.codingcoffee.cleansms.data.contacts
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
 import org.json.JSONObject
 
 data class SenderEntity(val header: String, val name: String, val address: String?)
@@ -14,19 +13,15 @@ data class SenderCode(val operator: String?, val serviceArea: String?, val type:
 class SenderDirectory(private val context: Context) {
     private val entities by lazy {
         val json = context.assets.open(ASSET).bufferedReader().use { it.readText() }
-        val entries = JSONArray(json)
+        val entries = JSONObject(json)
         buildMap {
-            for (i in 0 until entries.length()) {
-                val results = entries.getJSONObject(i).optJSONArray("results") ?: continue
-                for (j in 0 until results.length()) {
-                    val result = results.getJSONObject(j)
-                    val header = result.getString("header").uppercase()
-                    val details = result.optString("principal_entity_and_address")
-                    val name = details.substringBefore(',').trim()
-                    if (name.isEmpty()) continue
-                    val address = details.substringAfter(',', "").trim().trimEnd('.').ifEmpty { null }
-                    put(header, SenderEntity(header, name, address))
-                }
+            for (key in entries.keys()) {
+                val header = key.uppercase()
+                val details = entries.getJSONObject(key).optString("principal_entity_and_address")
+                val name = details.substringBefore(',').trim()
+                if (name.isEmpty()) continue
+                val address = details.substringAfter(',', "").trim().trimEnd('.').ifEmpty { null }
+                put(header, SenderEntity(header, name, address))
             }
         }
     }
@@ -55,7 +50,17 @@ class SenderDirectory(private val context: Context) {
         return withContext(Dispatchers.IO) { entities[header] }
     }
 
+    /** Sender IDs shaped like XX-NAME or XX-NAME-X whose NAME is missing from the directory, one per NAME. */
+    suspend fun unknown(addresses: List<String>): List<String> = withContext(Dispatchers.IO) {
+        addresses.map { it.trim().uppercase() }
+            .filter { dltPattern.matches(it) }
+            .distinctBy { it.split('-')[1] }
+            .filter { it.split('-')[1] !in entities }
+            .sorted()
+    }
+
     private companion object {
+        val dltPattern = Regex("[A-Z]{2}-[A-Z0-9]{3,}(-[A-Z])?")
         const val ASSET = "sender_headers.json"
         const val CODES_ASSET = "sender_codes.json"
     }

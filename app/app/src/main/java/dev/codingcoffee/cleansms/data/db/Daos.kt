@@ -130,6 +130,9 @@ interface MessageDao {
     @Query("SELECT COUNT(*) FROM messages WHERE box = 1 AND label IS NULL")
     fun observeUnlabelledCount(): Flow<Int>
 
+    @Query("SELECT DISTINCT address FROM messages WHERE box = 1")
+    suspend fun incomingAddresses(): List<String>
+
     @Query("SELECT * FROM messages WHERE box = 1 AND label = :label ORDER BY date DESC LIMIT 1")
     fun observeLatest(label: Label): Flow<MessageEntity?>
 
