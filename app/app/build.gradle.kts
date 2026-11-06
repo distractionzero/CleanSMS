@@ -1,5 +1,7 @@
+import java.net.HttpURLConnection
 import java.net.URI
 import java.security.MessageDigest
+import java.util.concurrent.Executors
 
 plugins {
     alias(libs.plugins.android.application)
@@ -35,6 +37,43 @@ val downloadSmsModel = tasks.register<DownloadSmsModel>("downloadSmsModel") {
     fileName = smsModelAsset
     outputDir = layout.buildDirectory.dir("generated/smsModel")
 }
+
+abstract class FetchSenderIcons : DefaultTask() {
+    @get:InputFile abstract val headers: RegularFileProperty
+    @get:OutputDirectory abstract val outputDir: DirectoryProperty
+
+    private val domainPattern = Regex("[a-z0-9-]+(\\.[a-z0-9-]+)+")
+
+    @TaskAction
+    fun fetch() {
+        val dir = outputDir.get().dir("sender_icons").asFile.apply { mkdirs() }
+        val entries = groovy.json.JsonSlurper().parse(headers.get().asFile) as Map<*, *>
+        val domains = entries.values.mapNotNull { (it as Map<*, *>)["domain"] as? String }
+            .filter { domainPattern.matches(it) && !File(dir, "$it.png").exists() }
+            .toSet()
+        val pool = Executors.newFixedThreadPool(8)
+        domains.map { pool.submit { download(it, File(dir, "$it.png")) } }.forEach { it.get() }
+        pool.shutdown()
+    }
+
+    private fun download(domain: String, target: File) {
+        runCatching {
+            val conn = URI("https://iconaut.xyz/icon?domain=$domain&size=128").toURL().openConnection() as HttpURLConnection
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 30_000
+            if (conn.responseCode == 200 && conn.contentType.orEmpty().startsWith("image/png")) {
+                target.writeBytes(conn.inputStream.use { it.readBytes() })
+            }
+        }.onFailure { logger.warn("Sender icon fetch failed for $domain: ${it.message}") }
+    }
+}
+
+val fetchSenderIcons = tasks.register<FetchSenderIcons>("fetchSenderIcons") {
+    headers = layout.projectDirectory.file("src/main/assets/sender_headers.json")
+    outputDir = layout.projectDirectory.dir("sender-icons")
+}
+
+tasks.named("preBuild") { dependsOn(fetchSenderIcons) }
 
 android {
     namespace = "dev.codingcoffee.cleansms"
@@ -88,6 +127,7 @@ android {
 androidComponents {
     onVariants { variant ->
         variant.sources.assets?.addGeneratedSourceDirectory(downloadSmsModel, DownloadSmsModel::outputDir)
+        variant.sources.assets?.addStaticSourceDirectory("sender-icons")
     }
 }
 

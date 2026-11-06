@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import dev.codingcoffee.cleansms.container
 import dev.codingcoffee.cleansms.data.contacts.Contact
 import dev.codingcoffee.cleansms.data.contacts.SenderEntity
+import dev.codingcoffee.cleansms.util.ImageLoader
 import dev.codingcoffee.cleansms.util.rememberImage
 
 private val avatarHues = floatArrayOf(4f, 28f, 145f, 175f, 205f, 230f, 265f, 320f)
@@ -77,6 +79,11 @@ fun Avatar(contacts: List<Contact>, modifier: Modifier = Modifier, size: Dp = 48
     val single = contacts.singleOrNull()
     val px = with(LocalDensity.current) { size.roundToPx() }
     val photo = rememberImage(single?.photoUri, px)
+    val context = LocalContext.current
+    val icon = produceState<ImageBitmap?>(null, single?.address, px) {
+        val path = single?.takeIf { it.photoUri == null }?.let { context.container.senders.entityOf(it.address) }?.icon
+        value = path?.let { ImageLoader.loadAsset(context.assets, it, px) }
+    }.value
 
     Box(
         modifier.size(size).clip(CircleShape).background(if (selected) MaterialTheme.colorScheme.primary else background),
@@ -85,6 +92,7 @@ fun Avatar(contacts: List<Contact>, modifier: Modifier = Modifier, size: Dp = 48
         when {
             selected -> Icon(Icons.Filled.Check, null, tint = MaterialTheme.colorScheme.onPrimary)
             photo != null -> Image(photo, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            icon != null -> Image(icon, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             contacts.size > 1 -> Icon(Icons.Filled.Group, null, tint = foreground, modifier = Modifier.size(size * 0.55f))
             single?.name != null -> Text(
                 single.name.first().uppercase(),

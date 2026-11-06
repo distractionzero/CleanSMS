@@ -1,6 +1,7 @@
 package dev.codingcoffee.cleansms.util
 
 import android.content.ContentResolver
+import android.content.res.AssetManager
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.util.LruCache
@@ -20,11 +21,17 @@ object ImageLoader {
 
     fun peek(uri: Uri, maxPx: Int): ImageBitmap? = cache.get("$uri@$maxPx")
 
-    suspend fun load(resolver: ContentResolver, uri: Uri, maxPx: Int): ImageBitmap? {
-        peek(uri, maxPx)?.let { return it }
+    suspend fun load(resolver: ContentResolver, uri: Uri, maxPx: Int): ImageBitmap? =
+        decode("$uri@$maxPx", maxPx) { ImageDecoder.createSource(resolver, uri) }
+
+    suspend fun loadAsset(assets: AssetManager, path: String, maxPx: Int): ImageBitmap? =
+        decode("asset:$path@$maxPx", maxPx) { ImageDecoder.createSource(assets, path) }
+
+    private suspend fun decode(key: String, maxPx: Int, source: () -> ImageDecoder.Source): ImageBitmap? {
+        cache.get(key)?.let { return it }
         return withContext(Dispatchers.IO) {
             runCatching {
-                ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri)) { decoder, info, _ ->
+                ImageDecoder.decodeBitmap(source()) { decoder, info, _ ->
                     val longest = maxOf(info.size.width, info.size.height)
                     if (longest > maxPx) {
                         val scale = maxPx.toFloat() / longest
@@ -34,7 +41,7 @@ object ImageLoader {
                         )
                     }
                 }.asImageBitmap()
-            }.getOrNull()?.also { cache.put("$uri@$maxPx", it) }
+            }.getOrNull()?.also { cache.put(key, it) }
         }
     }
 }

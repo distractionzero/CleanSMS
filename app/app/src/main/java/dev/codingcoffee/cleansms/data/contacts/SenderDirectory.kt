@@ -5,7 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
-data class SenderEntity(val header: String, val name: String, val address: String?)
+data class SenderEntity(val header: String, val name: String, val address: String?, val icon: String?)
 
 data class SenderCode(val operator: String?, val serviceArea: String?, val type: String?)
 
@@ -14,14 +14,17 @@ class SenderDirectory(private val context: Context) {
     private val entities by lazy {
         val json = context.assets.open(ASSET).bufferedReader().use { it.readText() }
         val entries = JSONObject(json)
+        val icons = context.assets.list(ICONS_DIR).orEmpty().toSet()
         buildMap {
             for (key in entries.keys()) {
                 val header = key.uppercase()
-                val details = entries.getJSONObject(key).optString("principal_entity_and_address")
+                val entry = entries.getJSONObject(key)
+                val details = entry.optString("principal_entity_and_address")
                 val name = details.substringBefore(',').trim()
                 if (name.isEmpty()) continue
                 val address = details.substringAfter(',', "").trim().trimEnd('.').ifEmpty { null }
-                put(header, SenderEntity(header, name, address))
+                val icon = "${entry.optString("domain")}.png".takeIf { it in icons }?.let { "$ICONS_DIR/$it" }
+                put(header, SenderEntity(header, name, address, icon))
             }
         }
     }
@@ -63,5 +66,6 @@ class SenderDirectory(private val context: Context) {
         val dltPattern = Regex("[A-Z]{2}-[A-Z0-9]{3,}(-[A-Z])?")
         const val ASSET = "sender_headers.json"
         const val CODES_ASSET = "sender_codes.json"
+        const val ICONS_DIR = "sender_icons"
     }
 }
