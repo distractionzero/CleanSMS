@@ -1,5 +1,6 @@
 package dev.codingcoffee.cleansms.ui.thread
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.CellTower
+import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.codingcoffee.cleansms.container
@@ -50,6 +53,7 @@ fun SenderScreen(address: String, onBack: () -> Unit) {
     val senders = LocalContext.current.container.senders
     val entity by produceState<SenderEntity?>(null, address) { value = senders.entityOf(address) }
     val code by produceState<SenderCode?>(null, address) { value = senders.codeOf(address) }
+    val uriHandler = LocalUriHandler.current
 
     Scaffold(
         topBar = {
@@ -82,6 +86,10 @@ fun SenderScreen(address: String, onBack: () -> Unit) {
                 DetailsCard {
                     InfoRow(Icons.Outlined.Badge, "Sender ID", info.header)
                     info.address?.let { InfoRow(Icons.Outlined.LocationOn, "Address", it) }
+                }
+                info.domain?.let {
+                    Spacer(Modifier.height(12.dp))
+                    DetailsCard { InfoRow(Icons.Outlined.Language, "Website", it) { uriHandler.openUri("https://$it") } }
                 }
             }
             code?.takeIf { it.operator != null || it.serviceArea != null }?.let { info ->
@@ -130,8 +138,13 @@ private fun DetailsCard(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun InfoRow(icon: ImageVector, label: String, value: String) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp)) {
+private fun InfoRow(icon: ImageVector, label: String, value: String, onClick: (() -> Unit)? = null) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+    ) {
         Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.width(20.dp))
         Column(Modifier.weight(1f)) {

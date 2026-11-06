@@ -5,7 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
-data class SenderEntity(val header: String, val name: String, val address: String?, val icon: String?)
+data class SenderEntity(val header: String, val name: String, val address: String?, val domain: String?, val icon: String?)
 
 data class SenderCode(val operator: String?, val serviceArea: String?, val type: String?)
 
@@ -23,8 +23,9 @@ class SenderDirectory(private val context: Context) {
                 val name = details.substringBefore(',').trim()
                 if (name.isEmpty()) continue
                 val address = details.substringAfter(',', "").trim().trimEnd('.').ifEmpty { null }
-                val icon = "${entry.optString("domain")}.png".takeIf { it in icons }?.let { "$ICONS_DIR/$it" }
-                put(header, SenderEntity(header, name, address, icon))
+                val domain = entry.optString("domain").ifEmpty { null }
+                val icon = domain?.let { "$it.png" }?.takeIf { it in icons }?.let { "$ICONS_DIR/$it" }
+                put(header, SenderEntity(header, name, address, domain, icon))
             }
         }
     }
