@@ -389,9 +389,21 @@ private fun ConversationRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (label != null && label != Label.Unknown) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        label.name,
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        maxLines = 1,
+                    )
+                }
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    label?.takeIf { it != Label.Unknown }?.let { "${it.name} · $time" } ?: time,
+                    time,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
