@@ -37,7 +37,7 @@ class AppContainer(context: Context) {
     val contacts = ContactRepository(context)
     val senders = SenderDirectory(context)
     val sync = TelephonySync(context, db, settings, scope)
-    val notifier: Notifier = Notifier(context, db, contacts, settings) { labeler.labelOf(it) }
+    val notifier: Notifier = Notifier(context, db, contacts, senders, settings) { labeler.labelOf(it) }
     val mms = MmsService(context, db, sync)
     val messaging = Messaging(context, db, sync, mms, notifier)
     val labeler: Labeler = Labeler(context, db, settings, contacts, messaging, scope)

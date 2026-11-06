@@ -7,13 +7,16 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.app.RemoteInput
+import androidx.core.graphics.drawable.IconCompat
 import dev.codingcoffee.cleansms.MainActivity
 import dev.codingcoffee.cleansms.R
 import dev.codingcoffee.cleansms.data.contacts.ContactRepository
+import dev.codingcoffee.cleansms.data.contacts.SenderDirectory
 import dev.codingcoffee.cleansms.data.db.CleanSmsDatabase
 import dev.codingcoffee.cleansms.data.db.Label
 import dev.codingcoffee.cleansms.data.db.MessageEntity
@@ -30,6 +33,7 @@ class Notifier(
     private val context: Context,
     private val db: CleanSmsDatabase,
     private val contacts: ContactRepository,
+    private val senders: SenderDirectory,
     private val settings: SettingsStore,
     private val labelOf: suspend (MessageEntity) -> Label,
 ) {
@@ -68,7 +72,11 @@ class Notifier(
         val sender = contacts.get(message.address.ifBlank { addresses.firstOrNull().orEmpty() })
         val text = message.body.ifBlank { if (message.hasAttachment) "Photo" else "Message" }
         val name = label.takeIf { it != Label.Unknown }?.let { "${sender.displayName} · [${it.name}]" } ?: sender.displayName
-        style.addMessage(text, message.date, Person.Builder().setName(name).setKey(sender.address).build())
+        val icon = senders.entityOf(sender.address)?.icon?.let { path ->
+            runCatching { context.assets.open(path).use { BitmapFactory.decodeStream(it) } }.getOrNull()
+        }
+        val person = Person.Builder().setName(name).setKey(sender.address).setIcon(icon?.let { IconCompat.createWithBitmap(it) })
+        style.addMessage(text, message.date, person.build())
 
         val requestCode = message.id.toInt()
         val open = PendingIntent.getActivity(
