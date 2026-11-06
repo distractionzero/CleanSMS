@@ -62,6 +62,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -103,6 +104,7 @@ fun ConversationsScreen(
     onSearch: () -> Unit,
     onArchived: () -> Unit,
     onBack: () -> Unit,
+    scrollToTop: Int = 0,
 ) {
     val container = LocalContext.current.container
     val vm: ConversationsViewModel = viewModel(key = "conversations-$archived") { ConversationsViewModel(container, archived) }
@@ -118,6 +120,7 @@ fun ConversationsScreen(
         apply()
         scope.launch { listState.scrollToItem(0) }
     }
+    LaunchedEffect(scrollToTop) { if (scrollToTop > 0) listState.animateScrollToItem(0) }
     val fabExpanded by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     var selected by remember { mutableStateOf(emptySet<Long>()) }
     var confirmDelete by remember { mutableStateOf(false) }

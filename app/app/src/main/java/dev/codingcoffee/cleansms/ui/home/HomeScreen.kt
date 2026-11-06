@@ -16,7 +16,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -41,6 +43,7 @@ fun HomeScreen(
     onLicenses: () -> Unit,
 ) {
     var tab by rememberSaveable { mutableStateOf(Tab.Inbox) }
+    var inboxReselected by remember { mutableIntStateOf(0) }
 
     BackHandler(enabled = tab != Tab.Inbox) { tab = Tab.Inbox }
 
@@ -51,7 +54,10 @@ fun HomeScreen(
                 Tab.entries.forEach {
                     NavigationBarItem(
                         selected = it == tab,
-                        onClick = { tab = it },
+                        onClick = {
+                            if (it == tab && it == Tab.Inbox) inboxReselected++
+                            tab = it
+                        },
                         icon = { Icon(it.icon, null) },
                         label = { Text(it.label) },
                     )
@@ -68,6 +74,7 @@ fun HomeScreen(
                     onSearch = onSearch,
                     onArchived = onArchived,
                     onBack = {},
+                    scrollToTop = inboxReselected,
                 )
                 Tab.Stats -> StatsScreen()
                 Tab.Settings -> SettingsScreen(onPrivacyPolicy, onLicenses)
