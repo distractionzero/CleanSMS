@@ -55,6 +55,12 @@ interface MessageDao {
     @Query("UPDATE messages SET read = 1 WHERE id = :id")
     suspend fun markRead(id: Long)
 
+    @Query("UPDATE messages SET read = 0 WHERE id = :id")
+    suspend fun markUnread(id: Long)
+
+    @Query("SELECT * FROM messages WHERE threadId = :threadId AND box = 1 ORDER BY date DESC, id DESC LIMIT 1")
+    suspend fun latestIncoming(threadId: Long): MessageEntity?
+
     @Query("DELETE FROM mms_parts WHERE messageId IN (SELECT id FROM messages WHERE threadId = :threadId)")
     suspend fun deleteThreadParts(threadId: Long)
 

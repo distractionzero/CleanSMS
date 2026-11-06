@@ -73,6 +73,10 @@ class ConversationsViewModel(private val container: AppContainer, archived: Bool
         threadIds.forEach { container.messaging.markRead(it) }
     }
 
+    fun markUnread(threadIds: Set<Long>) = container.scope.launch {
+        threadIds.forEach { container.messaging.markUnread(it) }
+    }
+
     fun delete(threadIds: Set<Long>) = container.scope.launch {
         container.messaging.delete(threadIds.toList())
     }

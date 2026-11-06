@@ -140,6 +140,9 @@ fun ConversationsScreen(
                         IconButton(onClick = { vm.markRead(selected); selected = emptySet() }) {
                             Icon(Icons.Outlined.MarkChatRead, "Mark as read")
                         }
+                        IconButton(onClick = { vm.markUnread(selected); selected = emptySet() }) {
+                            Icon(Icons.Outlined.MarkChatUnread, "Mark as unread")
+                        }
                         IconButton(onClick = { vm.setArchived(selected, !archived); selected = emptySet() }) {
                             Icon(if (archived) Icons.Outlined.Unarchive else Icons.Outlined.Archive, if (archived) "Unarchive" else "Archive")
                         }

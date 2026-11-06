@@ -139,6 +139,13 @@ class Messaging(
         sync.refreshThreads(listOf(threadId))
     }
 
+    suspend fun markUnread(threadId: Long) = withContext(Dispatchers.IO) {
+        val message = db.messages().latestIncoming(threadId) ?: return@withContext
+        resolver.update(providerUri(message), ContentValues().apply { put(Telephony.Sms.READ, 0) }, null, null)
+        db.messages().markUnread(message.id)
+        sync.refreshThreads(listOf(threadId))
+    }
+
     private fun readValues() = ContentValues().apply {
         put(Telephony.Sms.READ, 1)
         put(Telephony.Sms.SEEN, 1)
